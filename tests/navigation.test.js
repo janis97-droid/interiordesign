@@ -8,7 +8,41 @@ import {
   footprint,
   balcony,
   pointInPolygon,
+  walls,
+  SCALE,
 } from "../src/plan.js";
+import { skirtingRuns } from "../src/additions.js";
+
+test("tile skirting leaves doors and bathroom faces clear, retaining the dry side", () => {
+  // A shared WC/hall wall retains both short hall sections but no WC strip.
+  const wcHall = skirtingRuns(walls[13]);
+  assert.equal(wcHall.length, 2);
+  assert.ok(wcHall.every((run) => run.side === -1));
+  // The large bathroom/flex-room partition is tiled only on the flex side.
+  const bathFlex = skirtingRuns(walls[15]);
+  assert.equal(bathFlex.length, 1);
+  assert.equal(bathFlex[0].side, -1);
+  // This wall borders a bathroom, WC and hall; only the solid hall face remains.
+  const shared = skirtingRuns(walls[14]);
+  assert.equal(shared.length, 1);
+  assert.equal(shared[0].side, -1);
+  assert.ok(Math.abs(shared[0].from * SCALE - 93) < 0.001);
+  assert.ok(Math.abs(shared[0].to * SCALE - 153) < 0.001);
+  for (const wall of walls) {
+    for (const run of skirtingRuns(wall)) {
+      for (const door of wall.openings.filter((o) => o.type === "door"))
+        assert.ok(
+          run.to <= door.from + 1e-6 || run.from >= door.to - 1e-6,
+          "no strip across a doorway",
+        );
+      for (const face of wall.finishes.filter((f) => f.side === run.side))
+        assert.ok(
+          run.to <= face.from + 1e-6 || run.from >= face.to - 1e-6,
+          "no strip on a bathroom finish",
+        );
+    }
+  }
+});
 
 test("room destinations are inside the floor and clear of walls", () => {
   for (const room of rooms) {

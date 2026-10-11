@@ -1,6 +1,6 @@
 # Koma — a home to explore
 
-A view-only Three.js walkthrough reconstructed from `koma-b.pdf`. Visitors can walk, look around, jump between nine rooms, and orbit a cutaway overview. The current model is an empty architectural shell, ready to design from the real home. All design changes are maintained in the repository; there are no visitor editing controls or accounts.
+A view-only Three.js walkthrough reconstructed from `koma-b.pdf`. Visitors can walk, look around, jump between nine rooms, and orbit a cutaway overview. The model follows the real home, with furnishings added room by room as requested. All design changes are maintained in the repository; there are no visitor editing controls or accounts.
 
 ![The home in the 3D overview](docs/overview.png)
 
@@ -31,7 +31,7 @@ Build with `npm run build`; serve the result with `npm run preview`. All geometr
 
 ## Model and assumptions
 
-`src/plan.js` contains the traced footprint, walls, openings, room destinations, and collision geometry. The 1,530 cm overall plan dimension calibrates the reference image to metres. `src/world.js` builds the empty architectural shell with photo-referenced surfaces and daylight. Static geometry is batched for mobile performance. `src/rendering.js` adds daylight environment lighting and contact shadows; each bathroom has a cached reflection capture of its actual 3D walls and windows. Rendering pauses while the view is still, and contact shadows use reduced resolution.
+`src/plan.js` contains the traced footprint, walls, openings, room destinations, and collision geometry. The 1,530 cm overall plan dimension calibrates the reference image to metres. `src/world.js` builds the architectural shell and requested additions with photo-referenced surfaces and daylight. Static geometry is batched for mobile performance. `src/rendering.js` adds daylight environment lighting and contact shadows; each bathroom has a cached reflection capture of its actual 3D walls and windows. Rendering pauses while the view is still, and contact shadows use reduced resolution.
 
 Daylight is baked through the actual openings with four diffuse bounces, so light fades and changes direction across the rooms. `scripts/bake-daylight.mjs` traces the empty shell at build time and saves a small lightmap atlas. `npm run build` checks its fingerprint and only re-bakes when the plan or bake code changes (around four minutes locally); the committed atlas loads directly on visitors' devices. Sun direction and brightness are artistic daylight estimates, not a study of the building's orientation or a particular time of day. Walls have subtle plaster grain, and the floor has recessed grout and varied porcelain roughness. The living/kitchen floor also uses a cached reflection of that space.
 
@@ -39,8 +39,10 @@ Daylight is baked through the actual openings with four diffuse bounces, so ligh
 - Window sill/head heights and some openings are inferred. Verify them on site; photo-matched framing is applied to the living room, dining window corner, balcony slider, and small WC.
 - The guest-room entrance follows the owner's marked hallway screenshot: the old opening in the east wall is closed, and the doorway moves left around the corner to the south wall. Its existing approximate **0.81 m width × 2.18 m height** is preserved; the exact position and dimensions still need site measurements.
 - The owner confirmed the living/kitchen divider's outlined extension was never built. The model retains the solid section shown on the plan (approximately 2.65 m long); its exact length still needs a site measurement.
-- All added furniture, cabinetry, appliances, bathroom fittings, wall decor, plants, rugs, and light fixtures have been removed at the owner’s request. The orange-X unit shown beside the kitchen/living divider in the plan is intentionally absent.
+- The original proposed furniture, cabinetry, appliances, bathroom fittings, wall decor, plants, rugs, and light fixtures were removed at the owner’s request; new additions are agreed room by room. The orange-X unit shown beside the kitchen/living divider in the plan is intentionally absent.
 - Owner photos confirm white walls, black aluminium frames, shutter covers, and **1 × 1 m** grey concrete-look floor tiles. A four-metre procedural texture atlas preserves the exact one-metre grout spacing; colours and texture are approximate. Floor continuity into unphotographed rooms remains provisional.
+- Tile skirting is **5 cm high**, using the same grey floor material, on interior wall faces throughout the dry rooms and hall. All three bathroom interiors are excluded; doorways stay clear. Its **1 cm thickness** is an assumption. The strip wraps around the exposed kitchen/living divider end.
+- A **65-inch (16:9)** TV is mounted on the divider facing the living room. The active screen is approximately **1.439 × 0.809 m**, with a slim bezel, wall bracket and reflective switched-off screen. Screen centre is initially **1.15 m above the floor**; mounting height is adjustable. The living-room destination faces the TV. Dimensions and skirting runs live in `src/additions.js`.
 - The balcony slider is **approximately 1.60 m frame to frame**, estimated from the tiles/photo proportions. It is shown half open; collision blocks the stacked glass leaves and leaves the other half walkable.
 - The separate small WC opposite the stairs is restored from the plan, with white horizontal-wave wall tiles and a charcoal window wall from the supplied photo. Window dimensions and wave-tile panel sizes are estimates. The larger bathroom remains unfitted.
 - Both the large bathroom and parents’ bathroom use the same dark marble-look porcelain, confirmed by the owner. The albedo texture in `src/assets/dark-marble.png` is generated from the supplied reference, not an exact scan of the installed tiles. Walls are polished and floors less glossy. The **60 × 60 cm bathroom tile grid is provisional**; the living-area one-metre dimension is not assumed for these tiles.
@@ -80,3 +82,5 @@ This creates a Pages site; for an existing site, inspect it first and update its
 Use the existing checkout (cloud tasks are already isolated; no additional worktree is necessary). Change room geometry in `src/plan.js`, then update the shell or add owner-requested furnishings in `src/world.js`. Keep visitor controls view-only. Re-run the navigation tests when moving walls, openings, room destinations, or furniture.
 
 For each room, match the existing shell and finishes from photos first, review the walkthrough together, then add agreed fittings and furniture. Keep photo-confirmed facts separate from estimates in this document.
+
+For a closer match to the real photos, see the [Blender + fSpy workflow and tool research](docs/realism-workflow.md).

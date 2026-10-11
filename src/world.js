@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import {
   p,
   HEIGHT,
@@ -11,6 +12,12 @@ import {
 import { createPhotoFinishes } from "./finishes.js";
 import { daylightEnvironment } from "./rendering.js";
 import { daylightUV, floorBounds, LIGHTMAP_RANGE } from "./daylight-layout.js";
+import {
+  livingTV,
+  skirtingRuns,
+  SKIRTING_DEPTH,
+  SKIRTING_HEIGHT,
+} from "./additions.js";
 
 export async function buildWorld(scene, renderer) {
   const root = new THREE.Group();
@@ -41,6 +48,14 @@ export async function buildWorld(scene, renderer) {
     metal = material("#171b1e", 0.42, { metalness: 0.35 });
   for (const mat of Object.values(finishes)) lit(mat);
   const livingFloorMaterial = floorMaterial.clone();
+  const skirtingMaterial = floorMaterial.clone();
+  const tvScreen = new THREE.MeshPhysicalMaterial({
+    color: "#030508",
+    roughness: 0.16,
+    clearcoat: 1,
+    clearcoatRoughness: 0.1,
+    envMapIntensity: 0.5,
+  });
   const glass = material("#dce7ed", 0.07, {
     transparent: true,
     opacity: 0.045,
@@ -310,6 +325,65 @@ export async function buildWorld(scene, renderer) {
       cursor = o.to;
     }
     fill(cursor, length, 0, HEIGHT);
+    for (const run of skirtingRuns(wall)) {
+      box(
+        group,
+        run.to - run.from,
+        SKIRTING_HEIGHT,
+        SKIRTING_DEPTH,
+        (run.from + run.to) / 2,
+        run.floorY + SKIRTING_HEIGHT / 2,
+        run.side * (wall.thickness / 2 + SKIRTING_DEPTH / 2 + 0.001),
+        skirtingMaterial,
+      );
+    }
+    if (wall === livingTV.wall) {
+      // Continue the tile skirting around the exposed end of the short divider.
+      box(
+        group,
+        SKIRTING_DEPTH,
+        SKIRTING_HEIGHT,
+        wall.thickness + 2 * SKIRTING_DEPTH,
+        length + SKIRTING_DEPTH / 2,
+        0.003 + SKIRTING_HEIGHT / 2,
+        0,
+        skirtingMaterial,
+      );
+      const face = wall.thickness / 2,
+        center = length / 2;
+      const casing = material("#111215", 0.42, { metalness: 0.05 });
+      box(
+        group,
+        0.42,
+        0.28,
+        0.02,
+        center,
+        livingTV.centerHeight,
+        face + 0.012,
+        casing,
+      );
+      const body = new THREE.Mesh(
+        new RoundedBoxGeometry(
+          livingTV.width + 0.016,
+          livingTV.height + 0.016,
+          0.035,
+          2,
+          0.006,
+        ),
+        casing,
+      );
+      body.position.set(center, livingTV.centerHeight, face + 0.0395);
+      body.castShadow = true;
+      body.receiveShadow = true;
+      group.add(body);
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(livingTV.width, livingTV.height),
+        tvScreen,
+      );
+      screen.position.set(center, livingTV.centerHeight, face + 0.0575);
+      screen.receiveShadow = true;
+      group.add(screen);
+    }
   }
   const ceilingShape = new THREE.Shape(
     footprint.map(([x, z]) => new THREE.Vector2(x, -z)),
@@ -350,9 +424,8 @@ export async function buildWorld(scene, renderer) {
   }
   rectFloor(897, 775, 1145, 1050, material("#9e998c"), -0.13);
 
-  // Empty shell at the owner's request. No cabinets (including the orange-X
-  // unit shown beside the kitchen/living divider), furniture, decor, fittings,
-  // or proposed light fixtures. Keep the shortened divider in plan.js.
+  // Add furnishings room by room with the owner. The wall-mounted TV is the
+  // first requested addition; the former orange-X cabinet remains absent.
   const hemi = new THREE.HemisphereLight("#edf4ff", "#989287", 0.08);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight("#fff9ef", 3.2);
@@ -443,7 +516,7 @@ export async function buildWorld(scene, renderer) {
   ground.visible = false;
   const pmrem = new THREE.PMREMGenerator(renderer);
   for (const [point, materials] of [
-    [p(519, 682), [livingFloorMaterial]],
+    [p(519, 682), [livingFloorMaterial, tvScreen]],
     [p(225, 1210), [finishes.marbleBath, finishes.floorBath]],
     [p(960, 1200), [finishes.marbleEnsuite, finishes.floorEnsuite]],
   ]) {
@@ -480,6 +553,7 @@ export async function buildWorld(scene, renderer) {
         trim,
         roof.material,
         livingFloorMaterial,
+        skirtingMaterial,
         ...Object.values(finishes),
       ])
         mat.lightMapIntensity = walking ? LIGHTMAP_RANGE : LIGHTMAP_RANGE * 0.3;

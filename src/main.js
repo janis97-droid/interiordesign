@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildWorld } from "./world.js";
 import { createRendering } from "./rendering.js";
+import { livingTV } from "./additions.js";
 import {
   rooms,
   walls,
@@ -57,7 +58,7 @@ document.querySelector("#app").innerHTML = `
     <div id="loading"><span class="loading-mark">${icon("volume")}</span><strong>Making room for you.</strong><span>Preparing your home…</span></div>
     <div id="toast" role="status"></div>
   </main>
-  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">ROOM BY ROOM</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. The rooms are cleared of added furniture, cabinets, fittings, and decor so we can design from your real space. The 1 × 1 m grey floor tiles, black frames, shutter covers, small-toilet wave tiles, and dark marble in both bathrooms now follow your photos.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>Ceilings are assumed to be 2.80 m high. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. The bathrooms share the photographed dark marble. Their 60 cm tile spacing is provisional; window heights and exact tile sizes still need measurements. Unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
+  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">ROOM BY ROOM</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. We are building up the rooms from your real space. The first additions are a 65-inch TV facing the living room and 5 cm floor-matching skirting outside the bathrooms. The 1 × 1 m grey floor tiles, black frames, shutter covers, small-toilet wave tiles, and dark marble in both bathrooms now follow your photos.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>Ceilings are assumed to be 2.80 m high. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. The bathrooms share the photographed dark marble. Their 60 cm tile spacing is provisional; window heights and exact tile sizes still need measurements. Unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
 `;
 
 let renderer;
@@ -196,10 +197,8 @@ function visit(id) {
   activeRoom = room;
   setMode("walk");
   camera.position.set(room.point[0], EYE_HEIGHT, room.point[1]);
-  yaw = Math.atan2(
-    -(room.look[0] - room.point[0]),
-    -(room.look[1] - room.point[1]),
-  );
+  const look = room.id === "living" ? livingTV.lookAt : room.look;
+  yaw = Math.atan2(-(look[0] - room.point[0]), -(look[1] - room.point[1]));
   pitch = -0.12;
   camera.rotation.set(pitch, yaw, 0, "YXZ");
   updateRoomUI(room);
