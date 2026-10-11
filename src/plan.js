@@ -128,6 +128,92 @@ export const walls = [
   // solid section shown on the plan, ending at reference y=608 (~2.65 m long).
   w([728, 414], [728, 608], [], 0.19),
 ];
+// Bathroom finishes are shared by owner confirmation. Ranges are clipped to
+// each room; adjacent rooms retain their existing surfaces.
+const finishWall = (a, b, finish) => {
+  const start = p(...a),
+    end = p(...b);
+  const wall = walls.find(
+    (wall) =>
+      wall.a[0] === start[0] &&
+      wall.a[1] === start[1] &&
+      wall.b[0] === end[0] &&
+      wall.b[1] === end[1],
+  );
+  wall.finishes.push({
+    ...finish,
+    from: finish.from / SCALE,
+    to: finish.to / SCALE,
+  });
+};
+finishWall([104, 1337], [104, 992], {
+  from: 0,
+  to: 243,
+  side: 1,
+  material: "marbleBath",
+});
+finishWall([104, 1094], [318, 1094], {
+  from: 0,
+  to: 214,
+  side: 1,
+  material: "marbleBath",
+});
+finishWall([318, 1094], [318, 1337], {
+  from: 0,
+  to: 243,
+  side: 1,
+  material: "marbleBath",
+});
+finishWall([990, 1337], [104, 1337], {
+  from: 672,
+  to: 886,
+  side: 1,
+  material: "marbleBath",
+});
+finishWall([883, 744], [883, 1337], {
+  from: 316,
+  to: 593,
+  side: -1,
+  material: "marbleEnsuite",
+});
+finishWall([883, 1060], [1093, 1060], {
+  from: 0,
+  to: 210,
+  side: 1,
+  material: "marbleEnsuite",
+});
+finishWall([1208, 770], [990, 1337], {
+  from: (Math.hypot(218, 567) * 290) / 567,
+  to: Math.hypot(218, 567),
+  side: 1,
+  material: "marbleEnsuite",
+});
+finishWall([990, 1337], [104, 1337], {
+  from: 0,
+  to: 107,
+  side: 1,
+  material: "marbleEnsuite",
+});
+export const bathroomFloors = [
+  {
+    material: "floorBath",
+    polygon: [
+      [104, 1094],
+      [318, 1094],
+      [318, 1337],
+      [104, 1337],
+    ].map(([x, y]) => p(x, y)),
+  },
+  {
+    material: "floorEnsuite",
+    polygon: [
+      [883, 1060],
+      [1208 - (218 * 290) / 567, 1060],
+      [990, 1337],
+      [883, 1337],
+    ].map(([x, y]) => p(x, y)),
+  },
+];
 export const rooms = [
   {
     id: "living",
@@ -194,20 +280,20 @@ export const rooms = [
   },
   {
     id: "bath",
-    name: "Bathroom",
-    category: "Everyday rituals",
-    size: "Empty room · ready to design",
-    point: p(261, 1181),
-    look: p(178, 1240),
+    name: "Large bathroom",
+    category: "Existing dark marble",
+    size: "Dark marble · white veining",
+    point: p(278, 1150),
+    look: p(125, 1260),
     bounds: [104, 1094, 318, 1337],
   },
   {
     id: "ensuite",
-    name: "Shower room",
-    category: "A softer start",
-    size: "Along the angled façade",
+    name: "Parents’ bathroom",
+    category: "Existing dark marble",
+    size: "Matching marble · angled façade",
     point: p(962, 1116),
-    look: p(959, 1191),
+    look: p(1024, 1193),
     bounds: [883, 1060, 1093, 1260],
   },
 ];

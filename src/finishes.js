@@ -26,7 +26,46 @@ function canvasTexture(size, paint, color = true) {
   return texture;
 }
 
-export function createPhotoFinishes() {
+export async function createPhotoFinishes() {
+  const marbleMap = await new THREE.TextureLoader().loadAsync(
+    new URL("./assets/dark-marble.png", import.meta.url).href,
+  );
+  marbleMap.colorSpace = THREE.SRGBColorSpace;
+  marbleMap.wrapS = marbleMap.wrapT = THREE.RepeatWrapping;
+  marbleMap.anisotropy = 8;
+  marbleMap.repeat.setScalar(1 / 2.4);
+  // Same porcelain in both bathrooms. 60 cm square tile size is provisional;
+  // the owner confirmed the one-metre tiles only for the main living floor.
+  const marble = (floor = false) => {
+    const material = new THREE.MeshPhysicalMaterial({
+      map: marbleMap,
+      roughness: floor ? 0.36 : 0.15,
+      metalness: 0,
+      clearcoat: floor ? 0.12 : 0.45,
+      clearcoatRoughness: 0.12,
+      envMapIntensity: 0.8,
+    });
+    material.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          "#include <map_fragment>",
+          `#include <map_fragment>
+        vec2 tileUV = vMapUv * 4.0;
+        vec2 edge = min(fract(tileUV), 1.0 - fract(tileUV));
+        vec2 pixel = max(fwidth(tileUV), vec2(0.0001));
+        vec2 grout = 1.0 - smoothstep(vec2(0.001), vec2(0.0025) + pixel * 0.5, edge);
+        float tileJoint = max(grout.x, grout.y);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.032), tileJoint);`,
+        )
+        .replace(
+          "#include <roughnessmap_fragment>",
+          `#include <roughnessmap_fragment>
+        roughnessFactor = mix(roughnessFactor, 0.9, tileJoint);`,
+        );
+    };
+    material.customProgramCacheKey = () => "marble-grout-v1";
+    return material;
+  };
   // A four-metre atlas gives sixteen subtly different concrete-look tiles.
   const floorMap = canvasTexture(1024, (x, y) => {
     const tileX = Math.floor(x / 256),
@@ -72,5 +111,13 @@ export function createPhotoFinishes() {
       bumpScale: 0.004,
       roughness: 0.82,
     });
-  return { floor, whiteWave: wave("#eceae6"), charcoalWave: wave("#51575b") };
+  return {
+    floor,
+    whiteWave: wave("#eceae6"),
+    charcoalWave: wave("#51575b"),
+    marbleBath: marble(),
+    marbleEnsuite: marble(),
+    floorBath: marble(true),
+    floorEnsuite: marble(true),
+  };
 }

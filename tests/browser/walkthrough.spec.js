@@ -11,6 +11,9 @@ test("production site renders and every room destination is clear of furniture",
 }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
   await ready(page);
   expect(await page.evaluate(() => window.__koma.drawCalls)).toBeLessThan(150);
   await page.screenshot({ path: "test-results/desktop-overview.png" });
@@ -29,8 +32,8 @@ test("production site renders and every room destination is clear of furniture",
       canOccupy(state.position.x, state.position.z, state.obstacles),
       room.name,
     ).toBe(true);
-    if (room.id === "wc")
-      await page.screenshot({ path: "test-results/desktop-wc.png" });
+    if (["wc", "bath", "ensuite"].includes(room.id))
+      await page.screenshot({ path: `test-results/desktop-${room.id}.png` });
   }
   await page
     .getByRole("button", { name: "Visit Living room", exact: true })

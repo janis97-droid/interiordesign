@@ -1,9 +1,17 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { p, HEIGHT, footprint, balcony, walls } from "./plan.js";
+import {
+  p,
+  HEIGHT,
+  footprint,
+  balcony,
+  walls,
+  bathroomFloors,
+} from "./plan.js";
 import { createPhotoFinishes } from "./finishes.js";
+import { daylightEnvironment } from "./rendering.js";
 
-export function buildWorld(scene) {
+export async function buildWorld(scene, renderer) {
   const root = new THREE.Group();
   scene.add(root);
   const architecture = new THREE.Group(),
@@ -12,21 +20,24 @@ export function buildWorld(scene) {
   const obstacles = [];
   const material = (color, roughness = 0.8, extra = {}) =>
     new THREE.MeshStandardMaterial({ color, roughness, ...extra });
-  const finishes = createPhotoFinishes();
+  const finishes = await createPhotoFinishes();
+  const sky = daylightEnvironment(renderer, scene);
   const plaster = material("#efefec"),
     trim = material("#f3f3ef"),
     stone = material("#d1d2cf"),
     floorMaterial = finishes.floor,
     metal = material("#171b1e", 0.42, { metalness: 0.35 });
-  const glass = material("#cfdee5", 0.15, {
+  const glass = material("#dce7ed", 0.07, {
     transparent: true,
-    opacity: 0.14,
+    opacity: 0.11,
+    metalness: 0.2,
+    envMapIntensity: 1.1,
     depthWrite: false,
   });
   function box(parent, w, h, d, x, y, z, mat = plaster) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
     m.position.set(x, y, z);
-    m.castShadow = true;
+    m.castShadow = !mat.transparent;
     m.receiveShadow = true;
     parent.add(m);
     return m;
@@ -48,6 +59,8 @@ export function buildWorld(scene) {
   const rectFloor = (x1, z1, x2, z2, mat, y = 0.005) =>
     floor([p(x1, z1), p(x2, z1), p(x2, z2), p(x1, z2)], mat, y);
   floor(footprint, floorMaterial);
+  for (const room of bathroomFloors)
+    floor(room.polygon, finishes[room.material], 0.008);
   floor(balcony, material("#c0c1bc", 0.9));
 
   for (const wall of walls) {
@@ -61,7 +74,7 @@ export function buildWorld(scene) {
     const fill = (a, b, lo, hi) => {
       if (b - a <= 0.005 || hi - lo <= 0.005) return;
       box(group, b - a, hi - lo, wall.thickness, (a + b) / 2, (lo + hi) / 2, 0);
-      // Face only the WC's interior; clip finishes to the solid sections so
+      // Face only the room's interior; clip finishes to the solid sections so
       // windows and doorways stay open. UVs use real metres on both axes.
       for (const finish of wall.finishes) {
         const left = Math.max(a, finish.from),
@@ -211,6 +224,7 @@ export function buildWorld(scene) {
   );
   roof.rotation.x = -Math.PI / 2;
   roof.position.y = HEIGHT + 0.01;
+  roof.castShadow = true;
   ceiling.add(roof);
   // Balcony railing and a fixed stairwell guard. The source supplies only this floor.
   function rail(a, b, h = 1.05) {
@@ -238,10 +252,10 @@ export function buildWorld(scene) {
   // Empty shell at the owner's request. No cabinets (including the orange-X
   // unit shown beside the kitchen/living divider), furniture, decor, fittings,
   // or proposed light fixtures. Keep the shortened divider in plan.js.
-  const hemi = new THREE.HemisphereLight("#f8fbff", "#8d9092", 2.25);
+  const hemi = new THREE.HemisphereLight("#edf4ff", "#989287", 0.7);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight("#fff9ef", 3);
-  sun.position.set(-3, 17, -5);
+  sun.position.set(-9, 14, -15);
   sun.target.position.set(7, 0, 6);
   scene.add(sun, sun.target);
   sun.castShadow = true;
@@ -252,12 +266,12 @@ export function buildWorld(scene) {
     top: 14,
     bottom: -14,
     near: 0.5,
-    far: 45,
+    far: 60,
   });
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.025;
   sun.shadow.radius = 3;
-  const fill = new THREE.DirectionalLight("#dce5ee", 0.8);
+  const fill = new THREE.DirectionalLight("#dce5ee", 0.2);
   fill.position.set(15, 6, 15);
   scene.add(fill);
   const ground = new THREE.Mesh(
@@ -316,6 +330,30 @@ export function buildWorld(scene) {
   batch(architecture);
   batch(ceiling);
   batch(root, [architecture, ceiling]);
+  // Capture each real room once. Polished tiles reflect its windows and walls
+  // without a costly mirror render on every frame or an unrelated stock HDRI.
+  scene.background = sky;
+  scene.fog = null;
+  ground.visible = false;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  for (const [point, materials] of [
+    [p(225, 1210), [finishes.marbleBath, finishes.floorBath]],
+    [p(960, 1200), [finishes.marbleEnsuite, finishes.floorEnsuite]],
+  ]) {
+    const target = new THREE.WebGLCubeRenderTarget(256, {
+      type: THREE.HalfFloatType,
+    });
+    const probe = new THREE.CubeCamera(0.05, 60, target);
+    probe.position.set(point[0], 1.4, point[1]);
+    probe.update(renderer, scene);
+    const reflection = pmrem.fromCubemap(target.texture).texture;
+    for (const mat of materials) {
+      mat.envMap = reflection;
+      mat.needsUpdate = true;
+    }
+    target.dispose();
+  }
+  pmrem.dispose();
   return {
     root,
     architecture,
@@ -325,9 +363,10 @@ export function buildWorld(scene) {
       const walking = mode === "walk";
       ceiling.visible = walking;
       architecture.scale.y = walking ? 1 : 0.42;
-      ground.material.color.set(walking ? "#c4cbb8" : "#d8dcd2");
-      sun.intensity = walking ? 2.3 : 3;
-      hemi.intensity = walking ? 2.4 : 2.25;
+      ground.visible = !walking;
+      scene.background = walking ? sky : new THREE.Color("#d8dcd2");
+      sun.intensity = walking ? 3 : 2.7;
+      hemi.intensity = walking ? 0.7 : 1.3;
     },
   };
 }

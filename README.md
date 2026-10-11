@@ -6,7 +6,7 @@ A view-only Three.js walkthrough reconstructed from `koma-b.pdf`. Visitors can w
 
 ![Inside the living room](docs/living-room.png)
 
-Photo-matched details: [balcony doorway](docs/balcony-door.png) · [small toilet](docs/small-toilet.png).
+Photo-matched details: [large bathroom](docs/large-bathroom.png) · [parents’ bathroom](docs/parents-bathroom.png) · [balcony doorway](docs/balcony-door.png) · [small toilet](docs/small-toilet.png).
 
 ## Run
 
@@ -29,7 +29,7 @@ Build with `npm run build`; serve the result with `npm run preview`. All geometr
 
 ## Model and assumptions
 
-`src/plan.js` contains the traced footprint, walls, openings, room destinations, and collision geometry. The 1,530 cm overall plan dimension calibrates the reference image to metres. `src/world.js` builds the empty architectural shell with photo-referenced surfaces and daylight. Static geometry is batched for mobile performance.
+`src/plan.js` contains the traced footprint, walls, openings, room destinations, and collision geometry. The 1,530 cm overall plan dimension calibrates the reference image to metres. `src/world.js` builds the empty architectural shell with photo-referenced surfaces and daylight. Static geometry is batched for mobile performance. `src/rendering.js` adds daylight environment lighting and contact shadows; each bathroom has a cached reflection capture of its actual 3D walls and windows. Rendering pauses while the view is still, and contact shadows use reduced resolution.
 
 - The ceiling height is assumed to be **2.80 m**, eye height **1.62 m**.
 - Window sill/head heights and some openings are inferred. Verify them on site; photo-matched framing is applied to the living room, dining window corner, balcony slider, and small WC.
@@ -38,10 +38,12 @@ Build with `npm run build`; serve the result with `npm run preview`. All geometr
 - Owner photos confirm white walls, black aluminium frames, shutter covers, and **1 × 1 m** grey concrete-look floor tiles. A four-metre procedural texture atlas preserves the exact one-metre grout spacing; colours and texture are approximate. Floor continuity into unphotographed rooms remains provisional.
 - The balcony slider is **approximately 1.60 m frame to frame**, estimated from the tiles/photo proportions. It is shown half open; collision blocks the stacked glass leaves and leaves the other half walkable.
 - The separate small WC opposite the stairs is restored from the plan, with white horizontal-wave wall tiles and a charcoal window wall from the supplied photo. Window dimensions and wave-tile panel sizes are estimates. The larger bathroom remains unfitted.
+- Both the large bathroom and parents’ bathroom use the same dark marble-look porcelain, confirmed by the owner. The albedo texture in `src/assets/dark-marble.png` is generated from the supplied reference, not an exact scan of the installed tiles. Walls are polished and floors less glossy. The **60 × 60 cm bathroom tile grid is provisional**; the living-area one-metre dimension is not assumed for these tiles.
+- The exterior is a neutral sky gradient; the surrounding buildings have not been reconstructed.
 - Stairs are a visual placeholder. Walking stays on the supplied floor.
 - The “area = 16.0” annotation is not used as an area measurement because its context is unclear.
 - This is an approximate visualisation, not a construction drawing or a measured survey.
-- The original PDF and personal photos/videos are not bundled into the public build.
+- The original PDF and personal photos/videos are not bundled into the public build; only the generated material texture is published.
 
 ## Check
 
@@ -71,3 +73,5 @@ This creates a Pages site; for an existing site, inspect it first and update its
 ## Further design work
 
 Use the existing checkout (cloud tasks are already isolated; no additional worktree is necessary). Change room geometry in `src/plan.js`, then update the shell or add owner-requested furnishings in `src/world.js`. Keep visitor controls view-only. Re-run the navigation tests when moving walls, openings, room destinations, or furniture.
+
+For each room, match the existing shell and finishes from photos first, review the walkthrough together, then add agreed fittings and furniture. Keep photo-confirmed facts separate from estimates in this document.

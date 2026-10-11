@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildWorld } from "./world.js";
+import { createRendering } from "./rendering.js";
 import {
   rooms,
   walls,
@@ -33,12 +34,12 @@ document.querySelector("#app").innerHTML = `
     <div class="sidebar-intro"><span class="eyebrow">THE RESIDENCE / FLOOR 02</span><h1>A home to<br>step inside.</h1><p>A first look at the spaces<br>we’ll make your own.</p></div>
     <div class="room-heading"><span class="eyebrow">EXPLORE THE ROOMS</span><span>${String(rooms.length).padStart(2, "0")}</span></div>
     <nav id="room-list" aria-label="Explore rooms">${rooms.map((r, i) => `<button class="room-button" data-room="${r.id}" aria-label="Visit ${r.name}"><span class="room-number">${String(i + 1).padStart(2, "0")}</span><span class="room-copy"><strong>${r.name}</strong><small>${r.category}</small></span>${icon("chevron")}</button>`).join("")}</nav>
-    <div class="sidebar-footer"><span class="shell-icon" aria-hidden="true">${icon("plan")}</span><div><strong>Empty shell</strong><span>Ready to design together</span></div><button class="icon-button" id="about" aria-label="About this home">${icon("info")}</button></div>
+    <div class="sidebar-footer"><span class="shell-icon" aria-hidden="true">${icon("plan")}</span><div><strong>Room by room</strong><span>Matching your real home</span></div><button class="icon-button" id="about" aria-label="About this home">${icon("info")}</button></div>
   </aside>
   <main id="viewer">
     <div id="scene" aria-label="Interactive 3D home" tabindex="0"></div>
     <div class="scene-wash" aria-hidden="true"></div>
-    <header class="viewer-header"><span class="project-name">YOUR HOME, REIMAGINED</span><div class="header-right"><span class="concept-pill"><i></i> Empty shell</span><span class="daylight">${icon("sun")} Daylight</span></div></header>
+    <header class="viewer-header"><span class="project-name">YOUR HOME, REIMAGINED</span><div class="header-right"><span class="concept-pill"><i></i> Room by room</span><span class="daylight">${icon("sun")} Daylight</span></div></header>
     <div class="view-title"><span class="eyebrow" id="view-kicker">A NEW PERSPECTIVE</span><h2 id="view-title">The whole picture.</h2><p id="view-description">Take a look around. Then step into a room.</p></div>
     <div class="north-mark" aria-label="Plan orientation marker"><span>PLAN</span><svg viewBox="0 0 32 40" aria-hidden="true"><path d="m16 5 9 26-9-5-9 5Z" fill="none" stroke="currentColor"/><path d="M16 5v21" stroke="currentColor"/></svg></div>
     <div id="hotspots" aria-hidden="true"></div>
@@ -49,14 +50,14 @@ document.querySelector("#app").innerHTML = `
       <button class="next-room" id="next-room" hidden>Next room ${icon("arrow")}</button>
     </div>
     <div class="bottom-bar"><div class="mode-switch" role="group" aria-label="View mode"><button id="overview" class="active" aria-pressed="true">${icon("plan")}<span>Overview</span></button><button id="walk" aria-pressed="false">${icon("walk")}<span>Walk through</span></button></div><span class="toolbar-divider"></span><button class="icon-button" id="reset" aria-label="Reset view">${icon("reset")}</button><button class="icon-button" id="fullscreen" aria-label="Toggle fullscreen">${icon("expand")}</button></div>
-    <span class="concept-note">An empty home, ready for your ideas.</span>
+    <span class="concept-note">Your home, built up room by room.</span>
     <button class="mobile-rooms" id="mobile-rooms" aria-expanded="false" aria-controls="sidebar">${icon("plan")}<span>Rooms</span><span class="room-count">${rooms.length}</span></button>
     <div id="joystick" aria-label="Drag to move" role="group"><span id="joystick-knob"></span><span class="joystick-label">MOVE</span></div>
     <div class="look-hint">Drag the view to look around</div>
     <div id="loading"><span class="loading-mark">${icon("volume")}</span><strong>Making room for you.</strong><span>Preparing your home…</span></div>
     <div id="toast" role="status"></div>
   </main>
-  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">EMPTY SHELL</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. The rooms are cleared of added furniture, cabinets, fittings, and decor so we can design from your real space. The 1 × 1 m grey floor tiles, black frames, shutter covers, and small-toilet wall tiles now follow your photos.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>Ceilings are assumed to be 2.80 m high. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. Window heights, tile tones, and details still need site measurements; finishes in unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
+  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">ROOM BY ROOM</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. The rooms are cleared of added furniture, cabinets, fittings, and decor so we can design from your real space. The 1 × 1 m grey floor tiles, black frames, shutter covers, small-toilet wave tiles, and dark marble in both bathrooms now follow your photos.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>Ceilings are assumed to be 2.80 m high. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. The bathrooms share the photographed dark marble. Their 60 cm tile spacing is provisional; window heights and exact tile sizes still need measurements. Unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
 `;
 
 let renderer;
@@ -94,7 +95,8 @@ orbit.maxPolarAngle = Math.PI * 0.45;
 orbit.minPolarAngle = 0.15;
 orbit.enablePan = true;
 orbit.screenSpacePanning = false;
-const world = buildWorld(scene);
+const world = await buildWorld(scene, renderer);
+const rendering = createRendering(renderer, scene, camera);
 let mode = "overview",
   activeRoom = rooms[0],
   yaw = 0,
@@ -119,6 +121,7 @@ function toast(text) {
 }
 function resetOverview() {
   camera.fov = 43;
+  camera.near = 1;
   camera.updateProjectionMatrix();
   const fit = Math.max(1, 0.9 / camera.aspect);
   orbit.minDistance = 11;
@@ -181,6 +184,7 @@ function setMode(next) {
     document.querySelector("#view-description").textContent =
       "Take a look around. Then step into a room.";
   } else {
+    camera.near = 0.08;
     camera.fov = window.innerWidth <= 800 ? 82 : 65;
     camera.updateProjectionMatrix();
   }
@@ -367,6 +371,7 @@ const projected = new THREE.Vector3();
 function resize() {
   const { width, height } = container.getBoundingClientRect();
   renderer.setSize(width, height);
+  rendering.resize(width, height);
   camera.aspect = width / height;
   if (mode === "overview") resetOverview();
   else camera.fov = window.innerWidth <= 800 ? 82 : 65;
@@ -432,7 +437,7 @@ function frame(time) {
     }
   }
   if (renderNeeded) {
-    renderer.render(scene, camera);
+    rendering.render();
     renderNeeded = false;
   }
   // Read-only diagnostics for testing navigation and GPU rendering.
