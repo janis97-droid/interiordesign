@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
+    "build": "npm run bake:daylight && vite build",
+    "bake:daylight": "node scripts/bake-daylight.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/navigation.test.js",
     "test:e2e": "playwright test"
@@ -15,6 +16,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.64.0",
+    "three-mesh-bvh": "^0.9.16",
     "vite": "8.3.4"
   }
 }

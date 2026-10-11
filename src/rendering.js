@@ -30,10 +30,10 @@ export function daylightEnvironment(renderer, scene) {
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
   const sky = ctx.createLinearGradient(0, 0, 0, 256);
-  sky.addColorStop(0, "#849fb9");
-  sky.addColorStop(0.43, "#dbe6ed");
-  sky.addColorStop(0.52, "#f1f1e9");
-  sky.addColorStop(1, "#abb1ae");
+  sky.addColorStop(0, "#6e9fc7");
+  sky.addColorStop(0.43, "#bfd6e6");
+  sky.addColorStop(0.51, "#e2e6df");
+  sky.addColorStop(1, "#a4ada2");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, 512, 256);
   const texture = new THREE.CanvasTexture(canvas);
@@ -41,7 +41,7 @@ export function daylightEnvironment(renderer, scene) {
   texture.mapping = THREE.EquirectangularReflectionMapping;
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromEquirectangular(texture).texture;
-  scene.environmentIntensity = 0.45;
+  scene.environmentIntensity = 0.08;
   pmrem.dispose();
   return texture;
 }
@@ -62,7 +62,7 @@ export function createRendering(renderer, scene, camera) {
     { radius: 0.22, thickness: 0.12, distanceFallOff: 1, samples: 8 },
     { samples: 8, radius: 4 },
   );
-  ao.blendIntensity = 0.4;
+  ao.blendIntensity = 0.7;
   composer.addPass(ao);
   composer.addPass(new OutputPass());
   renderer.info.autoReset = false;

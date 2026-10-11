@@ -26,6 +26,25 @@ function canvasTexture(size, paint, color = true) {
   return texture;
 }
 
+const hash = (x, y) => {
+  let value = Math.imul(x, 374761393) ^ Math.imul(y, 668265263);
+  value = Math.imul(value ^ (value >>> 13), 1274126177);
+  return ((value ^ (value >>> 16)) >>> 0) / 4294967295;
+};
+function noise(x, y, period) {
+  const ix = Math.floor(x),
+    iy = Math.floor(y);
+  const u = x - ix,
+    v = y - iy,
+    sx = u * u * (3 - 2 * u),
+    sy = v * v * (3 - 2 * v);
+  const a = hash(ix % period, iy % period),
+    b = hash((ix + 1) % period, iy % period);
+  const c = hash(ix % period, (iy + 1) % period),
+    d = hash((ix + 1) % period, (iy + 1) % period);
+  return (a + (b - a) * sx) * (1 - sy) + (c + (d - c) * sx) * sy;
+}
+
 export async function createPhotoFinishes() {
   const marbleMap = await new THREE.TextureLoader().loadAsync(
     new URL("./assets/dark-marble.png", import.meta.url).href,
@@ -66,23 +85,57 @@ export async function createPhotoFinishes() {
     material.customProgramCacheKey = () => "marble-grout-v1";
     return material;
   };
+  const plasterBump = canvasTexture(
+    256,
+    (x, y) => 120 + hash(x, y) * 22,
+    false,
+  );
+  plasterBump.repeat.setScalar(2);
+  const plaster = new THREE.MeshStandardMaterial({
+    color: "#f0eeea",
+    roughness: 0.9,
+    bumpMap: plasterBump,
+    bumpScale: 0.00035,
+  });
   // A four-metre atlas gives sixteen subtly different concrete-look tiles.
   const floorMap = canvasTexture(1024, (x, y) => {
     const tileX = Math.floor(x / 256),
       tileY = Math.floor(y / 256);
     const grout = Math.min(x % 256, y % 256, 255 - (x % 256), 255 - (y % 256));
     const cloud =
-      Math.sin(x * 0.023 + Math.sin(y * 0.013) * 3) +
-      Math.sin(y * 0.035 + Math.cos(x * 0.019) * 2);
-    const grain = Math.sin(x * 37.7 + y * 91.3) * 0.8;
-    const variation = Math.sin(tileX * 17.1 + tileY * 31.7) * 2;
-    return grout === 0 ? 171 : 191 + variation + cloud * 2 + grain;
+      noise(x / 128, y / 128, 8) * 8 +
+      noise(x / 32, y / 32, 32) * 5 +
+      noise(x / 8, y / 8, 128) * 2;
+    const grain = hash(x, y) * 1.8;
+    const variation = hash(tileX, tileY) * 3;
+    return grout === 0 ? 162 : 177 + variation + cloud + grain;
   });
   floorMap.repeat.setScalar(1 / (4 * FLOOR_TILE_SIZE));
-  const floor = new THREE.MeshStandardMaterial({
-    color: "#f4f4f1",
+  const floorBump = canvasTexture(
+    1024,
+    (x, y) => {
+      const edge = Math.min(x % 256, y % 256, 255 - (x % 256), 255 - (y % 256));
+      return edge === 0 ? 40 : edge === 1 ? 170 : 205 + hash(x, y) * 4;
+    },
+    false,
+  );
+  floorBump.repeat.copy(floorMap.repeat);
+  const floorRoughness = canvasTexture(
+    512,
+    (x, y) => 190 + noise(x / 32, y / 32, 16) * 40,
+    false,
+  );
+  floorRoughness.repeat.copy(floorMap.repeat);
+  const floor = new THREE.MeshPhysicalMaterial({
+    color: "#fffdf8",
     map: floorMap,
-    roughness: 0.72,
+    bumpMap: floorBump,
+    bumpScale: 0.0008,
+    roughnessMap: floorRoughness,
+    roughness: 0.55,
+    clearcoat: 0.16,
+    clearcoatRoughness: 0.32,
+    envMapIntensity: 0.55,
   });
 
   // Horizontal sculpted waves in 60 × 30 cm panels (estimated from the photo).
@@ -112,6 +165,7 @@ export async function createPhotoFinishes() {
       roughness: 0.82,
     });
   return {
+    plaster,
     floor,
     whiteWave: wave("#eceae6"),
     charcoalWave: wave("#51575b"),

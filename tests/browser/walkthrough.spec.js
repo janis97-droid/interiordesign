@@ -16,7 +16,10 @@ test("production site renders and every room destination is clear of furniture",
   });
   await ready(page);
   expect(await page.evaluate(() => window.__koma.drawCalls)).toBeLessThan(150);
-  await page.screenshot({ path: "test-results/desktop-overview.png" });
+  await page.screenshot({
+    animations: "disabled",
+    path: "test-results/desktop-overview.png",
+  });
   for (const room of rooms) {
     await page
       .getByRole("button", { name: `Visit ${room.name}`, exact: true })
@@ -33,13 +36,19 @@ test("production site renders and every room destination is clear of furniture",
       room.name,
     ).toBe(true);
     if (["wc", "bath", "ensuite"].includes(room.id))
-      await page.screenshot({ path: `test-results/desktop-${room.id}.png` });
+      await page.screenshot({
+        animations: "disabled",
+        path: `test-results/desktop-${room.id}.png`,
+      });
   }
   await page
     .getByRole("button", { name: "Visit Living room", exact: true })
     .click();
   await page.waitForTimeout(650);
-  await page.screenshot({ path: "test-results/desktop-living.png" });
+  await page.screenshot({
+    animations: "disabled",
+    path: "test-results/desktop-living.png",
+  });
   expect(errors).toEqual([]);
 });
 test("walking, mouse look, reset, and Escape behave as visitor controls", async ({
@@ -128,7 +137,10 @@ test("mobile rooms and a touch joystick work without horizontal overflow", async
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
     390,
   );
-  await page.screenshot({ path: "test-results/mobile-overview.png" });
+  await page.screenshot({
+    animations: "disabled",
+    path: "test-results/mobile-overview.png",
+  });
   await page
     .getByRole("button", { name: `Rooms ${rooms.length}`, exact: true })
     .tap();
@@ -150,17 +162,27 @@ test("mobile rooms and a touch joystick work without horizontal overflow", async
     type: "touchMove",
     touchPoints: [{ x, y: y + 30 }],
   });
-  await page.waitForTimeout(650);
-  await cdp.send("Input.dispatchTouchEvent", {
-    type: "touchEnd",
-    touchPoints: [],
+  try {
+    // Hold until movement is observed: software WebGL can take longer than a
+    // fixed 650 ms to draw the first frame after entering a room.
+    await expect
+      .poll(
+        async () => {
+          const next = await page.evaluate(() => window.__koma.position);
+          return Math.hypot(next.x - pos.x, next.z - pos.z);
+        },
+        { timeout: 10000 },
+      )
+      .toBeGreaterThan(0.15);
+  } finally {
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  }
+  await page.screenshot({
+    animations: "disabled",
+    path: "test-results/mobile-walk.png",
   });
-  await expect
-    .poll(async () => {
-      const next = await page.evaluate(() => window.__koma.position);
-      return Math.hypot(next.x - pos.x, next.z - pos.z);
-    })
-    .toBeGreaterThan(0.15);
-  await page.screenshot({ path: "test-results/mobile-walk.png" });
   await context.close();
 });

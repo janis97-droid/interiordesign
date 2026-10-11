@@ -10,6 +10,7 @@ import {
 } from "./plan.js";
 import { createPhotoFinishes } from "./finishes.js";
 import { daylightEnvironment } from "./rendering.js";
+import { daylightUV, floorBounds, LIGHTMAP_RANGE } from "./daylight-layout.js";
 
 export async function buildWorld(scene, renderer) {
   const root = new THREE.Group();
@@ -21,21 +22,81 @@ export async function buildWorld(scene, renderer) {
   const material = (color, roughness = 0.8, extra = {}) =>
     new THREE.MeshStandardMaterial({ color, roughness, ...extra });
   const finishes = await createPhotoFinishes();
+  const daylight = await new THREE.TextureLoader().loadAsync(
+    new URL("./assets/daylight.png", import.meta.url).href,
+  );
+  daylight.channel = 1;
+  daylight.generateMipmaps = false;
+  daylight.minFilter = THREE.LinearFilter;
+  const lit = (mat) => {
+    mat.lightMap = daylight;
+    mat.lightMapIntensity = LIGHTMAP_RANGE;
+    return mat;
+  };
   const sky = daylightEnvironment(renderer, scene);
-  const plaster = material("#efefec"),
-    trim = material("#f3f3ef"),
+  const plaster = lit(finishes.plaster),
+    trim = lit(material("#f3f3ef", 0.65)),
     stone = material("#d1d2cf"),
     floorMaterial = finishes.floor,
     metal = material("#171b1e", 0.42, { metalness: 0.35 });
+  for (const mat of Object.values(finishes)) lit(mat);
+  const livingFloorMaterial = floorMaterial.clone();
   const glass = material("#dce7ed", 0.07, {
     transparent: true,
-    opacity: 0.11,
-    metalness: 0.2,
-    envMapIntensity: 1.1,
+    opacity: 0.045,
+    metalness: 0.05,
+    envMapIntensity: 0.5,
     depthWrite: false,
   });
+  glass.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "#include <opaque_fragment>",
+      `float grazing = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 5.0);
+      diffuseColor.a = 0.025 + grazing * 0.32;
+      #include <opaque_fragment>`,
+    );
+  };
+  glass.customProgramCacheKey = () => "window-fresnel-v1";
+  function wallUVs(geometry, index, x = 0, y = 0) {
+    const wall = walls[index];
+    const length = Math.hypot(wall.b[0] - wall.a[0], wall.b[1] - wall.a[1]);
+    const pos = geometry.attributes.position,
+      norm = geometry.attributes.normal;
+    const uv = new Float32Array(pos.count * 2);
+    for (let i = 0; i < pos.count; i++) {
+      const side = norm.getZ(i) < 0 ? -1 : 1;
+      uv.set(
+        daylightUV(
+          `wall-${index}-${side}`,
+          (pos.getX(i) + x) / length,
+          1 - (pos.getY(i) + y) / HEIGHT,
+        ),
+        i * 2,
+      );
+      geometry.attributes.uv.setXY(i, pos.getX(i) + x, pos.getY(i) + y);
+    }
+    geometry.setAttribute("uv1", new THREE.BufferAttribute(uv, 2));
+  }
+  function horizontalUVs(geometry, id) {
+    const pos = geometry.attributes.position,
+      uv = new Float32Array(pos.count * 2);
+    for (let i = 0; i < pos.count; i++)
+      uv.set(
+        daylightUV(
+          id,
+          (pos.getX(i) - floorBounds.minX) /
+            (floorBounds.maxX - floorBounds.minX),
+          (-pos.getY(i) - floorBounds.minZ) /
+            (floorBounds.maxZ - floorBounds.minZ),
+        ),
+        i * 2,
+      );
+    geometry.setAttribute("uv1", new THREE.BufferAttribute(uv, 2));
+  }
   function box(parent, w, h, d, x, y, z, mat = plaster) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    if (parent.userData.wallIndex !== undefined)
+      wallUVs(m.geometry, parent.userData.wallIndex, x, y);
     m.position.set(x, y, z);
     m.castShadow = !mat.transparent;
     m.receiveShadow = true;
@@ -50,6 +111,7 @@ export async function buildWorld(scene, renderer) {
       new THREE.ExtrudeGeometry(shape, { depth: 0.15, bevelEnabled: false }),
       mat,
     );
+    horizontalUVs(mesh.geometry, "floor");
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.y = y - 0.15;
     mesh.receiveShadow = true;
@@ -59,15 +121,18 @@ export async function buildWorld(scene, renderer) {
   const rectFloor = (x1, z1, x2, z2, mat, y = 0.005) =>
     floor([p(x1, z1), p(x2, z1), p(x2, z2), p(x1, z2)], mat, y);
   floor(footprint, floorMaterial);
+  // Keep this reflection local to the open living/kitchen floor.
+  rectFloor(278, 414, 1175, 744, livingFloorMaterial, 0.003);
   for (const room of bathroomFloors)
     floor(room.polygon, finishes[room.material], 0.008);
   floor(balcony, material("#c0c1bc", 0.9));
 
-  for (const wall of walls) {
+  for (const [wallIndex, wall] of walls.entries()) {
     const dx = wall.b[0] - wall.a[0],
       dz = wall.b[1] - wall.a[1],
       length = Math.hypot(dx, dz);
     const group = new THREE.Group();
+    group.userData.wallIndex = wallIndex;
     group.position.set(wall.a[0], 0, wall.a[1]);
     group.rotation.y = -Math.atan2(dz, dx);
     architecture.add(group);
@@ -91,6 +156,17 @@ export async function buildWorld(scene, renderer) {
           );
         }
         const panel = new THREE.Mesh(geometry, finishes[finish.material]);
+        const lightUV = new Float32Array(pos.count * 2);
+        for (let i = 0; i < pos.count; i++)
+          lightUV.set(
+            daylightUV(
+              `wall-${wallIndex}-${finish.side}`,
+              (finish.side * pos.getX(i) + (left + right) / 2) / length,
+              1 - (pos.getY(i) + (lo + hi) / 2) / HEIGHT,
+            ),
+            i * 2,
+          );
+        geometry.setAttribute("uv1", new THREE.BufferAttribute(lightUV, 2));
         panel.position.set(
           (left + right) / 2,
           (lo + hi) / 2,
@@ -143,6 +219,30 @@ export async function buildWorld(scene, renderer) {
             o.from + (width * j) / panels,
             (o.top + o.bottom) / 2,
             0,
+            metal,
+          );
+        // Recessed sash rails and modest handles, as in the black sliding
+        // frames in the owner's photos. These remain part of the window shell.
+        for (const z of [-0.027, 0.027])
+          box(
+            group,
+            width - 0.06,
+            0.012,
+            0.012,
+            center,
+            o.bottom + 0.08,
+            z,
+            metal,
+          );
+        if (width > 0.8)
+          box(
+            group,
+            0.018,
+            0.115,
+            0.035,
+            panels > 1 ? o.from + width / panels + 0.045 : o.to - 0.06,
+            Math.max(o.bottom + 0.35, 1.25),
+            0.065,
             metal,
           );
       } else if (o.sliding) {
@@ -216,12 +316,13 @@ export async function buildWorld(scene, renderer) {
   );
   const roof = new THREE.Mesh(
     new THREE.ShapeGeometry(ceilingShape),
-    material("#f1f1ed", 1, {
-      side: THREE.DoubleSide,
-      emissive: "#ecece7",
-      emissiveIntensity: 0.2,
-    }),
+    lit(
+      material("#f1f1ed", 1, {
+        side: THREE.DoubleSide,
+      }),
+    ),
   );
+  horizontalUVs(roof.geometry, "ceiling");
   roof.rotation.x = -Math.PI / 2;
   roof.position.y = HEIGHT + 0.01;
   roof.castShadow = true;
@@ -252,14 +353,15 @@ export async function buildWorld(scene, renderer) {
   // Empty shell at the owner's request. No cabinets (including the orange-X
   // unit shown beside the kitchen/living divider), furniture, decor, fittings,
   // or proposed light fixtures. Keep the shortened divider in plan.js.
-  const hemi = new THREE.HemisphereLight("#edf4ff", "#989287", 0.7);
+  const hemi = new THREE.HemisphereLight("#edf4ff", "#989287", 0.08);
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight("#fff9ef", 3);
+  const sun = new THREE.DirectionalLight("#fff9ef", 3.2);
   sun.position.set(-9, 14, -15);
   sun.target.position.set(7, 0, 6);
   scene.add(sun, sun.target);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  const shadowSize = window.innerWidth <= 800 ? 2048 : 4096;
+  sun.shadow.mapSize.set(shadowSize, shadowSize);
   Object.assign(sun.shadow.camera, {
     left: -14,
     right: 14,
@@ -268,12 +370,9 @@ export async function buildWorld(scene, renderer) {
     near: 0.5,
     far: 60,
   });
-  sun.shadow.bias = -0.0004;
-  sun.shadow.normalBias = 0.025;
-  sun.shadow.radius = 3;
-  const fill = new THREE.DirectionalLight("#dce5ee", 0.2);
-  fill.position.set(15, 6, 15);
-  scene.add(fill);
+  sun.shadow.bias = -0.00002;
+  sun.shadow.normalBias = 0.004;
+  sun.shadow.radius = 2;
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(160, 160),
     material("#d8dcd2"),
@@ -291,6 +390,13 @@ export async function buildWorld(scene, renderer) {
     function visit(object) {
       if (exclude.includes(object)) return;
       if (object.isMesh && !object.material.transparent) {
+        // Non-lightmapped rails and stair details still need matching attribute
+        // sets when they share a material with window parts.
+        if (!object.geometry.attributes.uv1)
+          object.geometry.setAttribute(
+            "uv1",
+            object.geometry.attributes.uv.clone(),
+          );
         const key = `${object.material.uuid}:${object.castShadow}:${object.receiveShadow}`;
         if (!batches.has(key))
           batches.set(key, {
@@ -337,6 +443,7 @@ export async function buildWorld(scene, renderer) {
   ground.visible = false;
   const pmrem = new THREE.PMREMGenerator(renderer);
   for (const [point, materials] of [
+    [p(519, 682), [livingFloorMaterial]],
     [p(225, 1210), [finishes.marbleBath, finishes.floorBath]],
     [p(960, 1200), [finishes.marbleEnsuite, finishes.floorEnsuite]],
   ]) {
@@ -365,8 +472,17 @@ export async function buildWorld(scene, renderer) {
       architecture.scale.y = walking ? 1 : 0.42;
       ground.visible = !walking;
       scene.background = walking ? sky : new THREE.Color("#d8dcd2");
-      sun.intensity = walking ? 3 : 2.7;
-      hemi.intensity = walking ? 0.7 : 1.3;
+      sun.intensity = walking ? 3.2 : 2.7;
+      hemi.intensity = walking ? 0.08 : 1.3;
+      scene.environmentIntensity = walking ? 0.08 : 0.45;
+      for (const mat of [
+        plaster,
+        trim,
+        roof.material,
+        livingFloorMaterial,
+        ...Object.values(finishes),
+      ])
+        mat.lightMapIntensity = walking ? LIGHTMAP_RANGE : LIGHTMAP_RANGE * 0.3;
     },
   };
 }

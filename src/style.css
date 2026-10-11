@@ -266,6 +266,9 @@ h1 {
     #c9d0c138 100%
   );
 }
+.walking .scene-wash {
+  display: none;
+}
 .viewer-header {
   position: absolute;
   top: 28px;
