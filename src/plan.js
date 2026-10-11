@@ -74,7 +74,9 @@ export const walls = [
   w([883, 744], [883, 1337], [door(40, 111), door(332, 397)], 0.16),
   w([883, 744], [1175, 744], [], 0.16),
   w([883, 1060], [1093, 1060], [], 0.12),
-  w([728, 414], [728, 754], [], 0.19),
+  // Owner confirmed the outlined extension was never built. Retain only the
+  // solid section shown on the plan, ending at reference y=608 (~2.65 m long).
+  w([728, 414], [728, 608], [], 0.19),
 ];
 export const rooms = [
   {

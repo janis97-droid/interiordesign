@@ -31,6 +31,7 @@ Build with `npm run build`; serve the result with `npm run preview`. All texture
 
 - The ceiling height is assumed to be **2.80 m**, eye height **1.62 m**.
 - Window sill/head heights and some openings are inferred. Verify them on site.
+- The owner confirmed the living/kitchen divider's outlined extension was never built. The model retains the solid section shown on the plan (approximately 2.65 m long); its exact length still needs a site measurement.
 - Furniture, finishes, and use of the guest/flex rooms are proposals, not existing conditions.
 - Stairs are a visual placeholder. Walking stays on the supplied floor.
 - The “area = 16.0” annotation is not used as an area measurement because its context is unclear.

@@ -421,7 +421,8 @@ export function buildWorld(scene) {
   box(coffee, 0.7, 0.32, 0.42, 0, 0.16, 0, oak, 0.06);
   books(coffee, -0.25, 0.46, 0);
   vase(coffee, 0.26, 0.46, 0.05, 0.095);
-  const media = place(711, 564);
+  // Keep the proposed TV and console against the built part of the divider.
+  const media = place(711, 512);
   block(media, 0.28, 1.9);
   box(media, 0.27, 0.36, 1.9, 0, 0.3, 0, oak, 0.02);
   box(media, 0.055, 0.92, 1.62, -0.1, 1.17, 0, metal, 0.02);
