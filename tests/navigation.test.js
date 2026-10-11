@@ -38,6 +38,17 @@ test("movement passes through an open doorway", () => {
   const next = moveWithCollision({ x, z }, -1.2, 0);
   assert.ok(next.x < p(451, 960)[0] - 0.25);
 });
+test("photo-matched balcony slider and separate WC have clear passages", () => {
+  assert.equal(canOccupy(...p(278, 640)), false, "stacked balcony glass");
+  assert.equal(canOccupy(...p(278, 703)), true, "open half of balcony slider");
+  const [x, z] = p(308, 703);
+  const next = moveWithCollision({ x, z }, -0.9, 0);
+  assert.ok(next.x < p(278, 703)[0] - 0.3, "walk through to balcony");
+  assert.equal(canOccupy(...p(197, 1047)), true, "small WC door");
+  assert.equal(canOccupy(...p(197, 1002)), false, "small WC partition");
+  assert.equal(canOccupy(...p(294, 1094)), true, "larger bathroom door");
+  assert.equal(canOccupy(...p(150, 1094)), false, "WC/bathroom dividing wall");
+});
 test("furniture collision respects rotated footprints and allows sliding", () => {
   const [x, z] = p(518, 800),
     obstacles = [{ x: x - 1, z, width: 0.6, depth: 1.6, angle: Math.PI / 2 }];

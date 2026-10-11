@@ -29,6 +29,8 @@ test("production site renders and every room destination is clear of furniture",
       canOccupy(state.position.x, state.position.z, state.obstacles),
       room.name,
     ).toBe(true);
+    if (room.id === "wc")
+      await page.screenshot({ path: "test-results/desktop-wc.png" });
   }
   await page
     .getByRole("button", { name: "Visit Living room", exact: true })
@@ -124,7 +126,9 @@ test("mobile rooms and a touch joystick work without horizontal overflow", async
     390,
   );
   await page.screenshot({ path: "test-results/mobile-overview.png" });
-  await page.getByRole("button", { name: "Rooms 8", exact: true }).tap();
+  await page
+    .getByRole("button", { name: `Rooms ${rooms.length}`, exact: true })
+    .tap();
   await page
     .getByRole("button", { name: "Visit Kitchen & dining", exact: true })
     .tap();

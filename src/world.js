@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { p, HEIGHT, footprint, balcony, walls } from "./plan.js";
+import { createPhotoFinishes } from "./finishes.js";
 
 export function buildWorld(scene) {
   const root = new THREE.Group();
@@ -11,15 +12,15 @@ export function buildWorld(scene) {
   const obstacles = [];
   const material = (color, roughness = 0.8, extra = {}) =>
     new THREE.MeshStandardMaterial({ color, roughness, ...extra });
-  // Neutral placeholder surfaces: finishes will be chosen from the real home.
-  const plaster = material("#e9e6dc"),
-    trim = material("#f5f2e9"),
-    stone = material("#ded9cb"),
-    floorMaterial = material("#dedbd3", 0.95),
-    metal = material("#3e423a", 0.35, { metalness: 0.55 });
-  const glass = material("#c4dace", 0.15, {
+  const finishes = createPhotoFinishes();
+  const plaster = material("#efefec"),
+    trim = material("#f3f3ef"),
+    stone = material("#d1d2cf"),
+    floorMaterial = finishes.floor,
+    metal = material("#171b1e", 0.42, { metalness: 0.35 });
+  const glass = material("#cfdee5", 0.15, {
     transparent: true,
-    opacity: 0.2,
+    opacity: 0.14,
     depthWrite: false,
   });
   function box(parent, w, h, d, x, y, z, mat = plaster) {
@@ -47,7 +48,7 @@ export function buildWorld(scene) {
   const rectFloor = (x1, z1, x2, z2, mat, y = 0.005) =>
     floor([p(x1, z1), p(x2, z1), p(x2, z2), p(x1, z2)], mat, y);
   floor(footprint, floorMaterial);
-  floor(balcony, floorMaterial);
+  floor(balcony, material("#c0c1bc", 0.9));
 
   for (const wall of walls) {
     const dx = wall.b[0] - wall.a[0],
@@ -58,16 +59,34 @@ export function buildWorld(scene) {
     group.rotation.y = -Math.atan2(dz, dx);
     architecture.add(group);
     const fill = (a, b, lo, hi) => {
-      if (b - a > 0.005 && hi - lo > 0.005)
-        box(
-          group,
-          b - a,
-          hi - lo,
-          wall.thickness,
-          (a + b) / 2,
+      if (b - a <= 0.005 || hi - lo <= 0.005) return;
+      box(group, b - a, hi - lo, wall.thickness, (a + b) / 2, (lo + hi) / 2, 0);
+      // Face only the WC's interior; clip finishes to the solid sections so
+      // windows and doorways stay open. UVs use real metres on both axes.
+      for (const finish of wall.finishes) {
+        const left = Math.max(a, finish.from),
+          right = Math.min(b, finish.to);
+        if (right <= left) continue;
+        const geometry = new THREE.PlaneGeometry(right - left, hi - lo);
+        const uv = geometry.attributes.uv,
+          pos = geometry.attributes.position;
+        for (let i = 0; i < uv.count; i++) {
+          uv.setXY(
+            i,
+            pos.getX(i) + (left + right) / 2,
+            pos.getY(i) + (lo + hi) / 2,
+          );
+        }
+        const panel = new THREE.Mesh(geometry, finishes[finish.material]);
+        panel.position.set(
+          (left + right) / 2,
           (lo + hi) / 2,
-          0,
+          finish.side * (wall.thickness / 2 + 0.003),
         );
+        if (finish.side < 0) panel.rotation.y = Math.PI;
+        panel.receiveShadow = true;
+        group.add(panel);
+      }
     };
     let cursor = 0;
     for (const o of [...wall.openings].sort((a, b) => a.from - b.from)) {
@@ -90,21 +109,90 @@ export function buildWorld(scene) {
         );
         for (const y of [o.bottom + 0.04, o.top - 0.025])
           box(group, width, 0.04, 0.08, center, y, 0, metal);
-        for (let j = 0; j <= Math.ceil(width / 1.1); j++)
+        if (o.transom)
+          box(
+            group,
+            width,
+            0.055,
+            0.08,
+            center,
+            o.bottom + o.transom,
+            0,
+            metal,
+          );
+        const panels = o.panels ?? Math.ceil(width / 1.1);
+        for (let j = 0; j <= panels; j++)
           box(
             group,
             0.035,
             o.top - o.bottom,
             0.08,
-            o.from + (width * j) / Math.ceil(width / 1.1),
+            o.from + (width * j) / panels,
             (o.top + o.bottom) / 2,
             0,
             metal,
           );
+      } else if (o.sliding) {
+        // Black aluminium slider, parked half open for a real walkable opening.
+        for (const x of [o.from + 0.025, o.to - 0.025])
+          box(group, 0.05, o.top, 0.14, x, o.top / 2, 0, metal);
+        for (const y of [0.014, o.top - 0.025])
+          box(group, width, 0.03, 0.14, center, y, 0, metal);
+        const leafWidth = width / 2,
+          leafCenter = o.from + leafWidth / 2;
+        for (const z of [-0.03, 0.035]) {
+          box(
+            group,
+            leafWidth - 0.07,
+            o.top - 0.09,
+            0.012,
+            leafCenter,
+            o.top / 2,
+            z,
+            glass,
+          );
+          for (const x of [o.from + 0.045, o.from + leafWidth - 0.018])
+            box(group, 0.035, o.top - 0.05, 0.04, x, o.top / 2, z, metal);
+          for (const y of [0.045, o.top - 0.045])
+            box(group, leafWidth, 0.045, 0.04, leafCenter, y, z, metal);
+        }
+        box(
+          group,
+          0.022,
+          0.18,
+          0.055,
+          o.passageFrom - 0.08,
+          1.02,
+          0.065,
+          metal,
+        );
       } else {
         for (const x of [o.from + 0.025, o.to - 0.025])
           box(group, 0.045, o.top, 0.2, x, o.top / 2, 0, trim);
         box(group, width, 0.06, 0.2, center, o.top, 0, trim);
+      }
+      if (o.shutterBox || o.sliding) {
+        const height = Math.min(0.26, HEIGHT - o.top - 0.07);
+        box(
+          group,
+          width + 0.14,
+          height,
+          wall.thickness + 0.065,
+          center,
+          o.top + height / 2 + 0.025,
+          0,
+          trim,
+        );
+        box(
+          group,
+          width + 0.1,
+          0.012,
+          wall.thickness + 0.07,
+          center,
+          o.top + 0.045,
+          0,
+          stone,
+        );
       }
       cursor = o.to;
     }
@@ -115,9 +203,9 @@ export function buildWorld(scene) {
   );
   const roof = new THREE.Mesh(
     new THREE.ShapeGeometry(ceilingShape),
-    material("#f2efe5", 1, {
+    material("#f1f1ed", 1, {
       side: THREE.DoubleSide,
-      emissive: "#ece8db",
+      emissive: "#ecece7",
       emissiveIntensity: 0.2,
     }),
   );
@@ -150,9 +238,9 @@ export function buildWorld(scene) {
   // Empty shell at the owner's request. No cabinets (including the orange-X
   // unit shown beside the kitchen/living divider), furniture, decor, fittings,
   // or proposed light fixtures. Keep the shortened divider in plan.js.
-  const hemi = new THREE.HemisphereLight("#fff6e5", "#8c8979", 2.25);
+  const hemi = new THREE.HemisphereLight("#f8fbff", "#8d9092", 2.25);
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight("#fff5db", 3);
+  const sun = new THREE.DirectionalLight("#fff9ef", 3);
   sun.position.set(-3, 17, -5);
   sun.target.position.set(7, 0, 6);
   scene.add(sun, sun.target);

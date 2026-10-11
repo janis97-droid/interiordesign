@@ -3,6 +3,8 @@
 export const SCALE = 1120 / 15.3;
 export const HEIGHT = 2.8; // Assumption: the source has no ceiling-height schedule.
 export const EYE_HEIGHT = 1.62;
+export const FLOOR_TILE_SIZE = 1; // Metres, confirmed by the owner.
+export const BALCONY_DOOR_WIDTH = 1.6; // Photo/tile estimate; frame to frame.
 export const p = (x, y) => [(x - 103) / SCALE, (y - 381) / SCALE];
 export const footprint = [
   [278, 403],
@@ -29,44 +31,92 @@ export const stairs = [
 ].map(([x, y]) => p(x, y));
 
 // Opening positions are distances in reference pixels from the segment's first point.
-const w = (a, b, openings = [], thickness = 0.16) => ({
+const w = (a, b, openings = [], thickness = 0.16, finishes = []) => ({
   a: p(...a),
   b: p(...b),
   openings: openings.map((o) => ({
     ...o,
     from: o.from / SCALE,
     to: o.to / SCALE,
+    ...(o.passageFrom === undefined
+      ? {}
+      : { passageFrom: o.passageFrom / SCALE }),
   })),
   thickness,
+  finishes: finishes.map((f) => ({
+    ...f,
+    from: f.from / SCALE,
+    to: f.to / SCALE,
+  })),
 });
-const win = (from, to) => ({
+const win = (from, to, details = {}) => ({
   from,
   to,
   bottom: 0.78,
   top: 2.42,
   type: "window",
+  ...details,
 });
 const door = (from, to) => ({ from, to, bottom: 0, top: 2.18, type: "door" });
+// The photographed balcony slider is shown half open, with both leaves stacked
+// toward the window. Collision uses the remaining clear passage, not the glass.
+const balconyDoor = {
+  ...door(320 - BALCONY_DOOR_WIDTH * SCALE, 320),
+  top: 2.42,
+  sliding: true,
+  passageFrom: 320 - (BALCONY_DOOR_WIDTH / 2) * SCALE,
+};
+const photoWindow = { transom: 0.28, shutterBox: true };
 export const walls = [
   w(
     [278, 414],
     [1175, 414],
-    [win(18, 313), win(382, 443), win(590, 884)],
+    [
+      win(18, 313, { ...photoWindow, panels: 3 }),
+      win(382, 443),
+      win(590, 884, { ...photoWindow, panels: 3 }),
+    ],
     0.22,
   ),
-  w([1175, 414], [1175, 745], [win(19, 123), win(185, 282)], 0.22),
+  w(
+    [1175, 414],
+    [1175, 745],
+    [win(19, 123, { ...photoWindow, panels: 2 }), win(185, 282)],
+    0.22,
+  ),
   w([1175, 745], [1208, 770], [], 0.2),
   w([1208, 770], [990, 1337], [win(80, 188), win(401, 464)], 0.2),
   w([990, 1337], [104, 1337], [win(178, 337), win(409, 502)], 0.2),
-  w([104, 1337], [104, 992], [win(92, 172)], 0.2),
-  w([104, 992], [166, 992], [], 0.2),
+  w(
+    [104, 1337],
+    [104, 992],
+    [win(92, 172), win(251, 306, { bottom: 1.05, top: 2.28, panels: 1 })],
+    0.2,
+    [{ from: 243, to: 343, side: 1, material: "charcoalWave" }],
+  ),
+  w([104, 992], [166, 992], [], 0.2, [
+    { from: 0, to: 62, side: 1, material: "whiteWave" },
+  ]),
   w([166, 992], [166, 744], [win(39, 191)], 0.2),
   w([166, 744], [451, 744], [], 0.16),
-  w([278, 414], [278, 737], [win(0, 139), door(247, 320)], 0.16),
+  w(
+    [278, 414],
+    [278, 737],
+    [win(0, 139, { ...photoWindow, panels: 2 }), balconyDoor],
+    0.16,
+  ),
   w([451, 744], [451, 994], [door(188, 247)], 0.14),
-  w([166, 994], [451, 994], [], 0.16),
+  w([166, 994], [451, 994], [], 0.16, [
+    { from: 0, to: 31, side: 1, material: "whiteWave" },
+  ]),
   w([451, 994], [590, 994], [door(20, 118)], 0.12),
-  w([104, 1094], [318, 1094], [door(78, 153)], 0.12),
+  // Separate small WC on the side opposite the stairs, shown in the plan/photo.
+  w([197, 994], [197, 1094], [door(23, 83)], 0.12, [
+    { from: 0, to: 100, side: 1, material: "whiteWave" },
+  ]),
+  w([104, 1094], [318, 1094], [door(153, 214)], 0.12, [
+    { from: 0, to: 93, side: -1, material: "whiteWave" },
+  ]),
   w([318, 1094], [318, 1337], [], 0.16),
   w([318, 1094], [583, 1094], [door(192, 264)], 0.16),
   w([590, 919], [590, 1337], [door(86, 160)], 0.16),
@@ -134,6 +184,15 @@ export const rooms = [
     bounds: [318, 1094, 590, 1337],
   },
   {
+    id: "wc",
+    name: "Small toilet",
+    category: "Existing wave tiles",
+    size: "White waves · charcoal window wall",
+    point: p(164, 1067),
+    look: p(107, 1038),
+    bounds: [104, 994, 197, 1094],
+  },
+  {
     id: "bath",
     name: "Bathroom",
     category: "Everyday rituals",
@@ -176,6 +235,7 @@ export function wallSolids() {
       length = Math.hypot(dx, dz);
     const cuts = wall.openings
       .filter((o) => o.type === "door")
+      .map((o) => ({ ...o, from: o.passageFrom ?? o.from }))
       .sort((a, b) => a.from - b.from);
     const intervals = [];
     let start = 0;
