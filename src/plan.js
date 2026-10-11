@@ -105,8 +105,10 @@ export const walls = [
     [win(0, 139, { ...photoWindow, panels: 2 }), balconyDoor],
     0.16,
   ),
-  w([451, 744], [451, 994], [door(188, 247)], 0.14),
-  w([166, 994], [451, 994], [], 0.16, [
+  // Owner's marked hallway view: close the guest room's east opening and move
+  // the same-width doorway around the corner to the south wall on the left.
+  w([451, 744], [451, 994], [], 0.14),
+  w([166, 994], [451, 994], [door(215, 274)], 0.16, [
     { from: 0, to: 31, side: 1, material: "whiteWave" },
   ]),
   w([451, 994], [590, 994], [door(20, 118)], 0.12),

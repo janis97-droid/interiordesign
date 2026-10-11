@@ -8,6 +8,8 @@ A view-only Three.js walkthrough reconstructed from `koma-b.pdf`. Visitors can w
 
 Photo-matched details: [large bathroom](docs/large-bathroom.png) · [parents’ bathroom](docs/parents-bathroom.png) · [balcony doorway](docs/balcony-door.png) · [small toilet](docs/small-toilet.png).
 
+Owner-corrected layout: [relocated guest-room entrance](docs/guest-entry.png).
+
 ## Run
 
 Requires Node.js 24 and npm. In the repository directory:
@@ -33,6 +35,7 @@ Build with `npm run build`; serve the result with `npm run preview`. All geometr
 
 - The ceiling height is assumed to be **2.80 m**, eye height **1.62 m**.
 - Window sill/head heights and some openings are inferred. Verify them on site; photo-matched framing is applied to the living room, dining window corner, balcony slider, and small WC.
+- The guest-room entrance follows the owner's marked hallway screenshot: the old opening in the east wall is closed, and the doorway moves left around the corner to the south wall. Its existing approximate **0.81 m width × 2.18 m height** is preserved; the exact position and dimensions still need site measurements.
 - The owner confirmed the living/kitchen divider's outlined extension was never built. The model retains the solid section shown on the plan (approximately 2.65 m long); its exact length still needs a site measurement.
 - All added furniture, cabinetry, appliances, bathroom fittings, wall decor, plants, rugs, and light fixtures have been removed at the owner’s request. The orange-X unit shown beside the kitchen/living divider in the plan is intentionally absent.
 - Owner photos confirm white walls, black aluminium frames, shutter covers, and **1 × 1 m** grey concrete-look floor tiles. A four-metre procedural texture atlas preserves the exact one-metre grout spacing; colours and texture are approximate. Floor continuity into unphotographed rooms remains provisional.

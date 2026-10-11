@@ -21,7 +21,8 @@ test("room destinations are inside the floor and clear of walls", () => {
   }
 });
 test("doors allow passage; solid partitions and window openings stop walking", () => {
-  assert.equal(canOccupy(...p(451, 965)), true, "guest doorway");
+  assert.equal(canOccupy(...p(410, 994)), true, "relocated guest doorway");
+  assert.equal(canOccupy(...p(451, 965)), false, "closed former guest doorway");
   assert.equal(canOccupy(...p(451, 820)), false, "guest wall");
   assert.equal(canOccupy(...p(440, 414)), false, "living window");
   assert.equal(canOccupy(...p(980, 925)), false, "stairwell");
@@ -33,10 +34,15 @@ test("movement cannot tunnel through a wall even with a large delta", () => {
   assert.ok(next.x > p(451, 810)[0] + 0.2);
   assert.ok(canOccupy(next.x, next.z));
 });
-test("movement passes through an open doorway", () => {
-  const [x, z] = p(494, 960);
-  const next = moveWithCollision({ x, z }, -1.2, 0);
-  assert.ok(next.x < p(451, 960)[0] - 0.25);
+test("guest entry moves around the corner and the former doorway blocks walking", () => {
+  const [x, z] = p(410, 1038);
+  const next = moveWithCollision({ x, z }, 0, -1.2);
+  assert.ok(next.z < p(410, 994)[1] - 0.25, "enter through the south wall");
+  assert.ok(canOccupy(next.x, next.z));
+  const [oldX, oldZ] = p(494, 960);
+  const blocked = moveWithCollision({ x: oldX, z: oldZ }, -1.2, 0);
+  assert.ok(blocked.x > p(451, 960)[0] + 0.2, "east wall is now solid");
+  assert.ok(canOccupy(blocked.x, blocked.z));
 });
 test("photo-matched balcony slider and separate WC have clear passages", () => {
   assert.equal(canOccupy(...p(278, 640)), false, "stacked balcony glass");
