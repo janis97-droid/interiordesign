@@ -137,7 +137,7 @@ export const rooms = [
     id: "bath",
     name: "Bathroom",
     category: "Everyday rituals",
-    size: "Proposed finish palette",
+    size: "Empty room · ready to design",
     point: p(261, 1181),
     look: p(178, 1240),
     bounds: [104, 1094, 318, 1337],

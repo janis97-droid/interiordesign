@@ -196,27 +196,16 @@ h1 {
   font-size: 9px;
   color: #8e9387;
 }
-.palette {
+.shell-icon {
   display: grid;
-  grid-template-columns: 12px 12px;
-  gap: 2px;
-  transform: rotate(-7deg);
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: #7e876d;
 }
-.palette i {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  background: #a67c51;
-}
-.palette i:nth-child(2) {
-  background: #d8d2c1;
-}
-.palette i:nth-child(3) {
-  background: #7e876d;
-}
-.palette i:nth-child(4) {
-  background: #f1ecdf;
-  border: 1px solid #dedccf;
+.shell-icon svg {
+  width: 24px;
+  height: 24px;
 }
 .sidebar-footer .icon-button {
   margin-left: auto;
