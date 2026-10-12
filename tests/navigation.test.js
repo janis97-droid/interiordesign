@@ -16,9 +16,10 @@ import {
   ensuiteBox,
   ensuiteObstacles,
   ensuitePlumbing,
+  ensuiteToilet,
 } from "../src/ensuite-layout.js";
 
-test("triangular cistern boxing blocks walking while basin and shower approaches stay clear", () => {
+test("extended boxing and toilet block walking while basin and shower approaches stay clear", () => {
   for (const room of rooms)
     assert.ok(canOccupy(...room.point, ensuiteObstacles), room.id);
   const [x, z] = ensuitePlumbing.toilet;
@@ -30,7 +31,7 @@ test("triangular cistern boxing blocks walking while basin and shower approaches
   assert.equal(
     canOccupy(x - 0.1, z, ensuiteObstacles),
     false,
-    "body clearance from front face",
+    "installed toilet",
   );
   const approach = moveWithCollision(
     { x: x - 0.8, z },
@@ -38,8 +39,17 @@ test("triangular cistern boxing blocks walking while basin and shower approaches
     0,
     ensuiteObstacles,
   );
-  assert.ok(approach.x <= ensuiteBox.frontX - 0.18);
+  assert.ok(approach.x <= ensuiteBox.frontX - ensuiteToilet.projection - 0.18);
   assert.ok(canOccupy(approach.x, approach.z, ensuiteObstacles));
+  assert.equal(
+    canOccupy(
+      ensuiteBox.frontX + 0.3,
+      ensuiteBox.startZ + 0.3,
+      ensuiteObstacles,
+    ),
+    false,
+    "left recess is filled by the continued ledge",
+  );
   assert.ok(
     canOccupy(...p(975, 1090), ensuiteObstacles),
     "left basin approach",

@@ -521,7 +521,10 @@ export async function buildWorld(scene, renderer) {
   for (const [point, materials] of [
     [p(519, 682), [livingFloorMaterial, tvScreen]],
     [p(225, 1210), [finishes.marbleBath, finishes.floorBath]],
-    [p(960, 1200), [finishes.marbleEnsuite, finishes.floorEnsuite]],
+    [
+      p(960, 1200),
+      [finishes.marbleEnsuite, finishes.floorEnsuite, ...ensuiteMaterials],
+    ],
   ]) {
     const target = new THREE.WebGLCubeRenderTarget(256, {
       type: THREE.HalfFloatType,

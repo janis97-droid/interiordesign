@@ -13,8 +13,9 @@ const inside = [
   facade.a[0] - direction[1] * inset,
   facade.a[1] + direction[0] * inset,
 ];
+// Continue the boxing to the left-hand wall, closing the unbuilt recess.
 const frontX = p(1015, 1114)[0],
-  startZ = p(1015, 1114)[1];
+  startZ = walls[21].a[1] + walls[21].thickness / 2;
 const endZ = inside[1] + ((frontX - inside[0]) * direction[1]) / direction[0];
 const backX = inside[0] + ((startZ - inside[1]) * direction[0]) / direction[1];
 
@@ -38,4 +39,14 @@ export const ensuitePlumbing = {
   shower: [p(943, 1337)[0], p(943, 1337)[1] - walls[4].thickness / 2 - 0.004],
   drain: p(943, 1300),
 };
-export const ensuiteObstacles = [{ polygon: ensuiteBox.polygon }];
+// Approximate proportions of the owner's white, closed-seat wall-hung WC.
+export const ensuiteToilet = { width: 0.36, projection: 0.53, height: 0.43 };
+export const ensuiteObstacles = [
+  { polygon: ensuiteBox.polygon },
+  {
+    x: ensuitePlumbing.toilet[0] - ensuiteToilet.projection / 2,
+    z: ensuitePlumbing.toilet[1],
+    width: ensuiteToilet.projection,
+    depth: ensuiteToilet.width,
+  },
+];

@@ -5,9 +5,9 @@ import {
 } from "./ensuite-layout.js";
 import { daylightUV, floorBounds } from "./daylight-layout.js";
 import { HEIGHT, walls } from "./plan.js";
+import { buildToilet } from "./toilet.js";
 
-// Existing construction details only: protective caps and access cover, with
-// no selected toilet, vanity, shower enclosure or finished tapware yet.
+// Photo-referenced construction details and the owner's selected toilet.
 export function buildEnsuite(parent, finishes) {
   const tile = finishes.marbleEnsuite;
   const material = (color, roughness = 0.8, metalness = 0) =>
@@ -20,11 +20,33 @@ export function buildEnsuite(parent, finishes) {
     });
   const plastic = material("#e4e0d4"),
     mortar = material("#938a7b"),
-    cap = material("#bb7060"),
     pipe = material("#9b9184", 0.65, 0.2),
     dark = material("#393b38"),
     steel = material("#a7aaa5", 0.38, 0.55);
-  const materials = [plastic, mortar, cap, pipe, dark, steel];
+  const ceramic = new THREE.MeshPhysicalMaterial({
+    color: "#fafaf7",
+    roughness: 0.17,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.13,
+    lightMap: tile.lightMap,
+    lightMapIntensity: tile.lightMapIntensity,
+  });
+  const seat = ceramic.clone();
+  seat.roughness = 0.22;
+  seat.clearcoat = 0.2;
+  const seal = material("#787a78", 0.85);
+  const chrome = material("#dedfdf", 0.16, 0.95);
+  const materials = [
+    plastic,
+    mortar,
+    pipe,
+    dark,
+    steel,
+    ceramic,
+    seat,
+    seal,
+    chrome,
+  ];
   const shape = new THREE.Shape(
     boxing.polygon.map(([x, z]) => new THREE.Vector2(x, -z)),
   );
@@ -113,10 +135,7 @@ export function buildEnsuite(parent, finishes) {
     add(g, ring, plastic, x, y, projection + 0.001);
   }
   const wc = mount(plumbing.toilet, -Math.PI / 2, frontUV);
-  box(wc, 0.205, 0.255, 0.004, 0, 0.29, 0.004, mortar);
-  port(wc, 0, 0.22, 0.055, cap, 0.065);
-  port(wc, 0, 0.36, 0.032, cap, 0.045);
-  for (const x of [-0.09, 0.09]) port(wc, x, 0.32, 0.005, pipe, 0.075);
+  buildToilet(wc, add, { ceramic, seat, seal, chrome });
   box(wc, 0.188, 0.25, 0.004, 0, 0.89, 0.004, mortar);
   box(wc, 0.17, 0.226, 0.012, 0, 0.89, 0.012, plastic);
   box(wc, 0.075, 0.006, 0.003, 0, 0.986, 0.02, dark);
