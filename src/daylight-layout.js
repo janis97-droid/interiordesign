@@ -1,4 +1,5 @@
 import { walls, HEIGHT, footprint, balcony } from "./plan.js";
+import { ensuiteBox } from "./ensuite-layout.js";
 
 // Shared by the offline daylight bake and the runtime UVs. Eight samples per
 // metre capture soft bounced light; screen-space AO supplies the fine contacts.
@@ -13,6 +14,11 @@ export const floorBounds = {
   maxZ: Math.max(...[...footprint, ...balcony].map((p) => p[1])),
 };
 const surfaces = [];
+surfaces.push(
+  { id: "ensuite-box-front", width: ensuiteBox.length, height: ensuiteBox.height },
+  { id: "ensuite-box-end", width: ensuiteBox.depth, height: ensuiteBox.height },
+  { id: "ensuite-box-top", width: ensuiteBox.depth, height: ensuiteBox.length },
+);
 for (const [index, wall] of walls.entries()) {
   const length = Math.hypot(wall.b[0] - wall.a[0], wall.b[1] - wall.a[1]);
   for (const side of [1, -1])

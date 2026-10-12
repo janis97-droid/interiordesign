@@ -8,11 +8,12 @@ import { createHash } from "node:crypto";
 import { deflateSync, crc32 } from "node:zlib";
 import { walls, footprint, balcony, bathroomFloors, HEIGHT, pointInPolygon } from "../src/plan.js";
 import { patches, atlasWidth, atlasHeight, floorBounds, LIGHTMAP_RANGE } from "../src/daylight-layout.js";
+import { ensuiteBox } from "../src/ensuite-layout.js";
 
 const imagePath = new URL("../src/assets/daylight.png", import.meta.url);
 const metaPath = new URL("../src/assets/daylight.json", import.meta.url);
 const hash = createHash("sha256");
-for (const name of ["../src/plan.js", "../src/daylight-layout.js", "bake-daylight.mjs"])
+for (const name of ["../src/plan.js", "../src/ensuite-layout.js", "../src/daylight-layout.js", "bake-daylight.mjs"])
   hash.update(await readFile(new URL(name, import.meta.url)));
 const fingerprint = hash.digest("hex");
 try {
@@ -23,6 +24,10 @@ try {
 } catch { /* First bake, or changed geometry. */ }
 
 const geometries = [];
+const boxingShape = new THREE.Shape(ensuiteBox.polygon.map(([x, z]) => new THREE.Vector2(x, -z)));
+const boxingGeometry = new THREE.ExtrudeGeometry(boxingShape, { depth: ensuiteBox.height, bevelEnabled: false });
+boxingGeometry.rotateX(-Math.PI / 2);
+geometries.push(boxingGeometry);
 for (const wall of walls) {
   const dx = wall.b[0] - wall.a[0], dz = wall.b[1] - wall.a[1], length = Math.hypot(dx, dz);
   const matrix = new THREE.Matrix4().makeRotationY(-Math.atan2(dz, dx));
@@ -101,7 +106,16 @@ for (const patch of patches) {
   const dz = wall ? (wall.b[1] - wall.a[1]) / patch.width : 0;
   for (let y = 0; y < patch.pixelsHigh; y++) for (let x = 0; x < patch.pixelsWide; x++) {
     const u = x / (patch.pixelsWide - 1), v = y / (patch.pixelsHigh - 1);
-    if (wall) {
+    if (patch.id === "ensuite-box-front") {
+      origin.set(ensuiteBox.frontX - 0.009, patch.height * (1 - v), ensuiteBox.startZ + patch.width * u);
+      normal.set(-1, 0, 0);
+    } else if (patch.id === "ensuite-box-end") {
+      origin.set(ensuiteBox.frontX + patch.width * u, patch.height * (1 - v), ensuiteBox.startZ - 0.009);
+      normal.set(0, 0, -1);
+    } else if (patch.id === "ensuite-box-top") {
+      origin.set(ensuiteBox.frontX + patch.width * u, ensuiteBox.height + 0.009, ensuiteBox.startZ + patch.height * v);
+      normal.set(0, 1, 0);
+    } else if (wall) {
       normal.set(-dz * patch.side, 0, dx * patch.side);
       origin.set(wall.a[0] + dx * patch.width * u, HEIGHT * (1 - v), wall.a[1] + dz * patch.width * u);
       origin.addScaledVector(normal, wall.thickness / 2 + 0.009);

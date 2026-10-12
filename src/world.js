@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { buildEnsuite } from "./ensuite.js";
+import { ensuiteObstacles } from "./ensuite-layout.js";
 import {
   p,
   HEIGHT,
@@ -25,7 +27,7 @@ export async function buildWorld(scene, renderer) {
   const architecture = new THREE.Group(),
     ceiling = new THREE.Group();
   root.add(architecture, ceiling);
-  const obstacles = [];
+  const obstacles = [...ensuiteObstacles];
   const material = (color, roughness = 0.8, extra = {}) =>
     new THREE.MeshStandardMaterial({ color, roughness, ...extra });
   const finishes = await createPhotoFinishes();
@@ -385,6 +387,7 @@ export async function buildWorld(scene, renderer) {
       group.add(screen);
     }
   }
+  const ensuiteMaterials = buildEnsuite(architecture, finishes);
   const ceilingShape = new THREE.Shape(
     footprint.map(([x, z]) => new THREE.Vector2(x, -z)),
   );
@@ -554,6 +557,7 @@ export async function buildWorld(scene, renderer) {
         roof.material,
         livingFloorMaterial,
         skirtingMaterial,
+        ...ensuiteMaterials,
         ...Object.values(finishes),
       ])
         mat.lightMapIntensity = walking ? LIGHTMAP_RANGE : LIGHTMAP_RANGE * 0.3;

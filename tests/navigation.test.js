@@ -12,6 +12,48 @@ import {
   SCALE,
 } from "../src/plan.js";
 import { skirtingRuns } from "../src/additions.js";
+import {
+  ensuiteBox,
+  ensuiteObstacles,
+  ensuitePlumbing,
+} from "../src/ensuite-layout.js";
+
+test("triangular cistern boxing blocks walking while basin and shower approaches stay clear", () => {
+  for (const room of rooms)
+    assert.ok(canOccupy(...room.point, ensuiteObstacles), room.id);
+  const [x, z] = ensuitePlumbing.toilet;
+  assert.equal(
+    canOccupy(x + 0.1, z, ensuiteObstacles),
+    false,
+    "inside the tiled boxing",
+  );
+  assert.equal(
+    canOccupy(x - 0.1, z, ensuiteObstacles),
+    false,
+    "body clearance from front face",
+  );
+  const approach = moveWithCollision(
+    { x: x - 0.8, z },
+    1.4,
+    0,
+    ensuiteObstacles,
+  );
+  assert.ok(approach.x <= ensuiteBox.frontX - 0.18);
+  assert.ok(canOccupy(approach.x, approach.z, ensuiteObstacles));
+  assert.ok(
+    canOccupy(...p(975, 1090), ensuiteObstacles),
+    "left basin approach",
+  );
+  assert.ok(canOccupy(...p(943, 1300), ensuiteObstacles), "right shower area");
+  const beside = moveWithCollision(
+    { x: p(943, 1175)[0], z },
+    0,
+    1.6,
+    ensuiteObstacles,
+  );
+  assert.ok(beside.z > z + 1.5, "walk along the boxing towards the shower");
+  assert.ok(canOccupy(beside.x, beside.z, ensuiteObstacles));
+});
 
 test("tile skirting leaves doors and bathroom faces clear, retaining the dry side", () => {
   // A shared WC/hall wall retains both short hall sections but no WC strip.

@@ -85,7 +85,13 @@ export const walls = [
     0.22,
   ),
   w([1175, 745], [1208, 770], [], 0.2),
-  w([1208, 770], [990, 1337], [win(80, 188), win(401, 464)], 0.2),
+  // Parents' bathroom photo: the window sits above a concealed-cistern ledge.
+  w(
+    [1208, 770],
+    [990, 1337],
+    [win(80, 188), win(401, 464, { bottom: 1.25, panels: 1 })],
+    0.2,
+  ),
   w([990, 1337], [104, 1337], [win(178, 337), win(409, 502)], 0.2),
   w(
     [104, 1337],
@@ -292,9 +298,9 @@ export const rooms = [
   {
     id: "ensuite",
     name: "Parents’ bathroom",
-    category: "Existing dark marble",
-    size: "Matching marble · angled façade",
-    point: p(962, 1116),
+    category: "Photo-matched layout",
+    size: "Toilet ahead · basin left · shower right",
+    point: p(925, 1140),
     look: p(1024, 1193),
     bounds: [883, 1060, 1093, 1260],
   },
@@ -367,6 +373,15 @@ export function canOccupy(x, z, obstacles = [], radius = 0.18) {
   )
     return false;
   return !obstacles.some((o) => {
+    if (o.polygon)
+      return (
+        pointInPolygon(x, z, o.polygon) ||
+        o.polygon.some(
+          (a, i) =>
+            distanceToSegment(x, z, a, o.polygon[(i + 1) % o.polygon.length]) <
+            radius,
+        )
+      );
     const dx = x - o.x,
       dz = z - o.z,
       c = Math.cos(o.angle || 0),
