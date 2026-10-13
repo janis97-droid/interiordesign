@@ -3,6 +3,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { buildEnsuite } from "./ensuite.js";
 import { ensuiteObstacles } from "./ensuite-layout.js";
+import { buildEntrance } from "./entrance.js";
 import {
   p,
   HEIGHT,
@@ -12,7 +13,7 @@ import {
   bathroomFloors,
 } from "./plan.js";
 import { createPhotoFinishes } from "./finishes.js";
-import { daylightEnvironment } from "./rendering.js";
+import { createEnvironment } from "./rendering.js";
 import { daylightUV, floorBounds, LIGHTMAP_RANGE } from "./daylight-layout.js";
 import {
   livingTV,
@@ -37,12 +38,22 @@ export async function buildWorld(scene, renderer) {
   daylight.channel = 1;
   daylight.generateMipmaps = false;
   daylight.minFilter = THREE.LinearFilter;
+  const nightlight = await new THREE.TextureLoader().loadAsync(
+    new URL("./assets/nightlight.png", import.meta.url).href,
+  );
+  nightlight.channel = 1;
+  nightlight.generateMipmaps = false;
+  nightlight.minFilter = THREE.LinearFilter;
   const lit = (mat) => {
     mat.lightMap = daylight;
     mat.lightMapIntensity = LIGHTMAP_RANGE;
     return mat;
   };
-  const sky = daylightEnvironment(renderer, scene);
+  const dayEnvironment = createEnvironment(renderer);
+  const nightEnvironment = createEnvironment(renderer, true);
+  const sky = dayEnvironment.sky;
+  scene.environment = dayEnvironment.environment;
+  scene.environmentIntensity = 0.08;
   const plaster = lit(finishes.plaster),
     trim = lit(material("#f3f3ef", 0.65)),
     stone = material("#d1d2cf"),
@@ -388,6 +399,7 @@ export async function buildWorld(scene, renderer) {
     }
   }
   const ensuiteMaterials = buildEnsuite(architecture, finishes);
+  const entrance = buildEntrance(ceiling, plaster);
   const ceilingShape = new THREE.Shape(
     footprint.map(([x, z]) => new THREE.Vector2(x, -z)),
   );
@@ -517,53 +529,118 @@ export async function buildWorld(scene, renderer) {
   scene.background = sky;
   scene.fog = null;
   ground.visible = false;
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  for (const [point, materials] of [
+  const reflectionRooms = [
     [p(519, 682), [livingFloorMaterial, tvScreen]],
     [p(225, 1210), [finishes.marbleBath, finishes.floorBath]],
     [
       p(960, 1200),
       [finishes.marbleEnsuite, finishes.floorEnsuite, ...ensuiteMaterials],
     ],
-  ]) {
-    const target = new THREE.WebGLCubeRenderTarget(256, {
-      type: THREE.HalfFloatType,
-    });
-    const probe = new THREE.CubeCamera(0.05, 60, target);
-    probe.position.set(point[0], 1.4, point[1]);
-    probe.update(renderer, scene);
-    const reflection = pmrem.fromCubemap(target.texture).texture;
-    for (const mat of materials) {
-      mat.envMap = reflection;
-      mat.needsUpdate = true;
+  ];
+  const reflectionCache = new Map();
+  function reflections(timeOfDay) {
+    let captured = reflectionCache.get(timeOfDay);
+    if (!captured) {
+      // Capture at full architectural height even when the visitor switches
+      // lighting in the cutaway overview. Each lighting state is cached once.
+      const visible = ceiling.visible,
+        scale = architecture.scale.y;
+      ceiling.visible = true;
+      architecture.scale.y = 1;
+      root.updateMatrixWorld(true);
+      for (const [, materials] of reflectionRooms)
+        for (const mat of materials) {
+          mat.envMap = null;
+          mat.needsUpdate = true;
+        }
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      captured = reflectionRooms.map(([point]) => {
+        const target = new THREE.WebGLCubeRenderTarget(
+          timeOfDay === "day" ? 256 : 128,
+          {
+            type: THREE.HalfFloatType,
+          },
+        );
+        const probe = new THREE.CubeCamera(0.05, 60, target);
+        probe.position.set(point[0], 1.4, point[1]);
+        probe.update(renderer, scene);
+        const reflection = pmrem.fromCubemap(target.texture).texture;
+        target.dispose();
+        return reflection;
+      });
+      pmrem.dispose();
+      reflectionCache.set(timeOfDay, captured);
+      ceiling.visible = visible;
+      architecture.scale.y = scale;
     }
-    target.dispose();
+    reflectionRooms.forEach(([, materials], index) => {
+      for (const mat of materials) {
+        mat.envMap = captured[index];
+        mat.needsUpdate = true;
+      }
+    });
   }
-  pmrem.dispose();
+  reflections("day");
+  let viewMode = "overview",
+    timeOfDay = "day";
+  const bakedMaterials = new Set([
+    plaster,
+    trim,
+    roof.material,
+    livingFloorMaterial,
+    skirtingMaterial,
+    ...ensuiteMaterials,
+    ...Object.values(finishes),
+    ...entrance.materials.filter((mat) => mat.lightMap),
+  ]);
+  function applyLighting() {
+    const walking = viewMode === "walk",
+      night = timeOfDay === "night";
+    ceiling.visible = walking;
+    architecture.scale.y = walking ? 1 : 0.42;
+    ground.visible = !walking;
+    const environment = night ? nightEnvironment : dayEnvironment;
+    scene.background = walking
+      ? environment.sky
+      : new THREE.Color(night ? "#192331" : "#d8dcd2");
+    scene.environment = environment.environment;
+    ground.material.color.set(night ? "#17202b" : "#d8dcd2");
+    ground.material.emissive.set(night ? "#253246" : "#000000");
+    ground.material.emissiveIntensity = night ? 0.6 : 0;
+    sun.intensity = night ? 0 : walking ? 3.2 : 2.7;
+    sun.visible = !night;
+    hemi.color.set(night ? "#8fabc9" : "#edf4ff");
+    hemi.groundColor.set(night ? "#5c5b60" : "#989287");
+    hemi.intensity = night ? (walking ? 0.1 : 0.24) : walking ? 0.08 : 1.3;
+    scene.environmentIntensity = night ? 0.1 : walking ? 0.08 : 0.45;
+    for (const mat of bakedMaterials) {
+      mat.lightMap = night ? nightlight : daylight;
+      mat.lightMapIntensity = LIGHTMAP_RANGE * (walking || night ? 1 : 0.3);
+    }
+    entrance.setNight(night);
+  }
   return {
     root,
     architecture,
     ceiling,
     obstacles,
     setMode(mode) {
-      const walking = mode === "walk";
-      ceiling.visible = walking;
-      architecture.scale.y = walking ? 1 : 0.42;
-      ground.visible = !walking;
-      scene.background = walking ? sky : new THREE.Color("#d8dcd2");
-      sun.intensity = walking ? 3.2 : 2.7;
-      hemi.intensity = walking ? 0.08 : 1.3;
-      scene.environmentIntensity = walking ? 0.08 : 0.45;
-      for (const mat of [
-        plaster,
-        trim,
-        roof.material,
-        livingFloorMaterial,
-        skirtingMaterial,
-        ...ensuiteMaterials,
-        ...Object.values(finishes),
-      ])
-        mat.lightMapIntensity = walking ? LIGHTMAP_RANGE : LIGHTMAP_RANGE * 0.3;
+      viewMode = mode;
+      applyLighting();
     },
+    setLighting(next) {
+      timeOfDay = next === "night" ? "night" : "day";
+      applyLighting();
+      const groundVisible = ground.visible;
+      ground.visible = false;
+      reflections(timeOfDay);
+      ground.visible = groundVisible;
+    },
+    lightingState: () => ({
+      timeOfDay,
+      sunIntensity: sun.intensity,
+      interiorLights: timeOfDay === "night",
+      ceilingVisible: ceiling.visible,
+    }),
   };
 }

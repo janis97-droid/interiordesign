@@ -23,27 +23,26 @@ class InteriorAO extends GTAOPass {
   }
 }
 
-export function daylightEnvironment(renderer, scene) {
+export function createEnvironment(renderer, night = false) {
   // A neutral sky, not a fabricated photograph of the surroundings.
   const canvas = document.createElement("canvas");
   canvas.width = 512;
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
   const sky = ctx.createLinearGradient(0, 0, 0, 256);
-  sky.addColorStop(0, "#6e9fc7");
-  sky.addColorStop(0.43, "#bfd6e6");
-  sky.addColorStop(0.51, "#e2e6df");
-  sky.addColorStop(1, "#a4ada2");
+  sky.addColorStop(0, night ? "#070f23" : "#6e9fc7");
+  sky.addColorStop(0.43, night ? "#18263c" : "#bfd6e6");
+  sky.addColorStop(0.51, night ? "#243148" : "#e2e6df");
+  sky.addColorStop(1, night ? "#101622" : "#a4ada2");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, 512, 256);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.mapping = THREE.EquirectangularReflectionMapping;
   const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromEquirectangular(texture).texture;
-  scene.environmentIntensity = 0.08;
+  const environment = pmrem.fromEquirectangular(texture).texture;
   pmrem.dispose();
-  return texture;
+  return { sky: texture, environment };
 }
 
 export function createRendering(renderer, scene, camera) {

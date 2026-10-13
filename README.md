@@ -8,6 +8,8 @@ A view-only Three.js walkthrough reconstructed from `koma-b.pdf`. Visitors can w
 
 Photo-matched details: [large bathroom](docs/large-bathroom.png) · [parents’ bathroom](docs/parents-bathroom.png) · [balcony doorway](docs/balcony-door.png) · [small toilet](docs/small-toilet.png).
 
+Entrance lighting: [day](docs/entrance-day.png) · [night](docs/entrance-night.png) · [corridor](docs/corridor-night.png).
+
 Owner-corrected layout: [relocated guest-room entrance](docs/guest-entry.png).
 
 ## Run
@@ -26,16 +28,18 @@ Build with `npm run build`; serve the result with `npm run preview`. All geometr
 - **Overview:** drag to orbit, scroll/pinch to zoom, right-drag/two-finger drag to pan.
 - **Walk:** WASD or arrow keys to move; drag the view to look. Shift walks faster.
 - **Phone/tablet:** drag the joystick to move; drag the scene to look. Open **Rooms** for shortcuts.
+- **Day / Night:** switch between sunlight and warm entrance/corridor lighting without changing the camera. The chosen lighting stays active when changing rooms or opening the overview.
 - **Escape:** return to overview. Reset returns to the current room's starting view.
-- Share `#room=living`, `#room=bedroom`, etc. for a particular room.
+- Share `#room=living`, `#room=bedroom`, etc. for a particular room; add `&lighting=night` to share the night setting.
 
 ## Model and assumptions
 
 `src/plan.js` contains the traced footprint, walls, openings, room destinations, and collision geometry. The 1,530 cm overall plan dimension calibrates the reference image to metres. `src/world.js` builds the architectural shell and requested additions with photo-referenced surfaces and daylight. Static geometry is batched for mobile performance. `src/rendering.js` adds daylight environment lighting and contact shadows; each bathroom has a cached reflection capture of its actual 3D walls and windows. Rendering pauses while the view is still, and contact shadows use reduced resolution.
 
-Daylight is baked through the actual openings with four diffuse bounces, so light fades and changes direction across the rooms. `scripts/bake-daylight.mjs` traces the architectural shell and bathroom boxing at build time and saves a small lightmap atlas. `npm run build` checks its fingerprint and only re-bakes when the plan, bathroom layout or bake code changes (around four minutes locally); the committed atlas loads directly on visitors' devices. Sun direction and brightness are artistic daylight estimates, not a study of the building's orientation or a particular time of day. Walls have subtle plaster grain, and the floor has recessed grout and varied porcelain roughness. The living/kitchen floor also uses a cached reflection of that space.
+Daylight is baked through the actual openings with four diffuse bounces, so light fades and changes direction across the rooms. `scripts/bake-daylight.mjs` traces the architectural shell, bathroom boxing and lowered ceilings at build time and saves separate day and night lightmap atlases. Night lighting samples the magnetic LED diffusers and spotlight with occlusion and four diffuse bounces; it turns off the sun and the daylight atlas. Room reflections are cached separately for day and night, so bright daytime windows are not retained at night. `npm run build` checks its fingerprint and only re-bakes when the plan, bathroom/ceiling layout or bake code changes (around six minutes locally); the committed atlas loads directly on visitors' devices. Sun direction and brightness are artistic daylight estimates, not a study of the building's orientation or a particular time of day. Walls have subtle plaster grain, and the floor has recessed grout and varied porcelain roughness. The living/kitchen floor also uses a cached reflection of that space.
 
-- The ceiling height is assumed to be **2.80 m**, eye height **1.62 m**.
+- The main ceiling height is assumed to be **2.80 m**, eye height **1.62 m**.
+- The entrance photograph guides a lowered ceiling beside the stairwell, continuing along the corridor outside the rooms and ending at the living-room entrance, with a white linear AC grille across the front fascia. The owner confirmed the **40 cm drop**. With the still-assumed 2.80 m main ceiling, the modeled underside is **2.40 m**; the corridor footprint follows the room boundaries. The owner confirmed **three magnetic LED tracks and one spotlight at the entrance, plus a fourth long magnetic track in the corridor**. Slim recessed dark channels contain warm-white linear modules (approximately **3000 K** in appearance). Track lengths, spot position, grille dimensions and brightness are provisional; `src/entrance-layout.js` keeps them together. These requested lights switch on at night; rooms without selected fittings remain unlit, with dim ambient light for navigation.
 - Window sill/head heights and some openings are inferred. Verify them on site; photo-matched framing is applied to the living room, dining window corner, balcony slider, and small WC.
 - The guest-room entrance follows the owner's marked hallway screenshot: the old opening in the east wall is closed, and the doorway moves left around the corner to the south wall. Its existing approximate **0.81 m width × 2.18 m height** is preserved; the exact position and dimensions still need site measurements.
 - The owner confirmed the living/kitchen divider's outlined extension was never built. The model retains the solid section shown on the plan (approximately 2.65 m long); its exact length still needs a site measurement.
@@ -62,7 +66,7 @@ npm run test:e2e
 ```
 
 If using an existing system Chromium: `CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e`.
-The browser tests exercise the production build under `/interiordesign/`, all room destinations, continuous walking routes, desktop look/movement, mobile touch navigation, and direct room links. Test screenshots are saved under `test-results/`.
+The browser tests exercise the production build under `/interiordesign/`, all room destinations, continuous walking routes, desktop look/movement, mobile touch navigation, direct room links, and Day/Night switching and persistence. Test screenshots are saved under `test-results/`.
 
 ## Publish
 

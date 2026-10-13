@@ -137,6 +137,14 @@ test("mobile rooms and a touch joystick work without horizontal overflow", async
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
     390,
   );
+  await page.getByRole("button", { name: "Night", exact: true }).tap();
+  await expect(
+    page.getByRole("button", { name: "Night", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect
+    .poll(() => page.evaluate(() => window.__koma.lightState.sunIntensity))
+    .toBe(0);
+  await page.getByRole("button", { name: "Day", exact: true }).tap();
   await page.screenshot({
     animations: "disabled",
     path: "test-results/mobile-overview.png",
@@ -185,4 +193,49 @@ test("mobile rooms and a touch joystick work without horizontal overflow", async
     path: "test-results/mobile-walk.png",
   });
   await context.close();
+});
+
+test("day and night persist across view changes and shared links without moving the visitor", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await ready(page, "./#room=dining&lighting=night");
+  await expect(
+    page.getByRole("button", { name: "Night", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  const night = await page.evaluate(() => window.__koma);
+  expect(night.lightState.sunIntensity).toBe(0);
+  expect(night.lightState.interiorLights).toBe(true);
+  await page.screenshot({
+    path: "test-results/desktop-night.png",
+    animations: "disabled",
+  });
+  await page.getByRole("button", { name: "Day", exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.__koma.lighting))
+    .toBe("day");
+  const day = await page.evaluate(() => window.__koma);
+  expect(day.position).toEqual(night.position);
+  expect(day.yaw).toBe(night.yaw);
+  expect(day.lightState.sunIntensity).toBe(3.2);
+  expect(day.lightState.interiorLights).toBe(false);
+  await page.getByRole("button", { name: "Night", exact: true }).click();
+  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.__koma.lightState.sunIntensity))
+    .toBe(0);
+  await expect(page).toHaveURL(/#overview&lighting=night$/);
+  await page.screenshot({
+    path: "test-results/night-overview.png",
+    animations: "disabled",
+  });
+  await page
+    .getByRole("button", { name: "Visit Living room", exact: true })
+    .click();
+  await expect(page).toHaveURL(/#room=living&lighting=night$/);
+  expect(
+    await page.evaluate(() => window.__koma.lightState.interiorLights),
+  ).toBe(true);
+  expect(errors).toEqual([]);
 });

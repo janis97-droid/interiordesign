@@ -28,6 +28,7 @@ const icons = {
   close: '<path d="m6 6 12 12M6 18 18 6"/>',
   chevron: '<path d="m9 5 7 7-7 7"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 1v2m0 18v2M1 12h2m18 0h2M4.2 4.2l1.4 1.4m12.8 12.8 1.4 1.4M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>',
+  moon: '<path d="M20.5 13.5A9 9 0 0 1 10.5 3a9 9 0 1 0 10 10.5Z"/>',
   volume: '<path d="m12 3 9 5v9l-9 5-9-5V8zm0 10 9-5M3 8l9 5v9"/>',
 };
 const icon = (name) =>
@@ -43,7 +44,7 @@ document.querySelector("#app").innerHTML = `
   <main id="viewer">
     <div id="scene" aria-label="Interactive 3D home" tabindex="0"></div>
     <div class="scene-wash" aria-hidden="true"></div>
-    <header class="viewer-header"><span class="project-name">YOUR HOME, REIMAGINED</span><div class="header-right"><span class="concept-pill"><i></i> Room by room</span><span class="daylight">${icon("sun")} Daylight</span></div></header>
+    <header class="viewer-header"><span class="project-name">YOUR HOME, REIMAGINED</span><div class="header-right"><span class="concept-pill"><i></i> Room by room</span><div class="lighting-switch" role="group" aria-label="Lighting"><button id="day-light" class="active" aria-pressed="true">${icon("sun")}<span>Day</span></button><button id="night-light" aria-pressed="false">${icon("moon")}<span>Night</span></button></div></div></header>
     <div class="view-title"><span class="eyebrow" id="view-kicker">A NEW PERSPECTIVE</span><h2 id="view-title">The whole picture.</h2><p id="view-description">Take a look around. Then step into a room.</p></div>
     <div class="north-mark" aria-label="Plan orientation marker"><span>PLAN</span><svg viewBox="0 0 32 40" aria-hidden="true"><path d="m16 5 9 26-9-5-9 5Z" fill="none" stroke="currentColor"/><path d="M16 5v21" stroke="currentColor"/></svg></div>
     <div id="hotspots" aria-hidden="true"></div>
@@ -61,7 +62,7 @@ document.querySelector("#app").innerHTML = `
     <div id="loading"><span class="loading-mark">${icon("volume")}</span><strong>Making room for you.</strong><span>Preparing your home…</span></div>
     <div id="toast" role="status"></div>
   </main>
-  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">ROOM BY ROOM</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. We are building up the rooms from your real space. The first additions are a 65-inch TV facing the living room and 5 cm floor-matching skirting outside the bathrooms. The 1 × 1 m grey floor tiles, black frames, shutter covers, small-toilet wave tiles, and dark marble in both bathrooms now follow your photos. The parents’ bathroom includes the continuous triangular tiled ledge, the white wall-hung toilet from your reference, and the existing plumbing positions.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>Ceilings are assumed to be 2.80 m high. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. The bathrooms share the photographed dark marble. Their 60 cm tile spacing is provisional; window heights and exact tile sizes still need measurements. Unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
+  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">ROOM BY ROOM</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. We are building up the rooms from your real space. The first additions are a 65-inch TV facing the living room and 5 cm floor-matching skirting outside the bathrooms. The 1 × 1 m grey floor tiles, black frames, shutter covers, small-toilet wave tiles, and dark marble in both bathrooms now follow your photos. The entrance and corridor ceiling is 40 cm below the main ceiling, ending at the living-room entrance, with a white AC grille, three warm magnetic LED tracks and one spotlight, plus a fourth long magnetic track in the corridor. Switch between Day and Night to see the lighting. The parents’ bathroom includes the continuous triangular tiled ledge, the white wall-hung toilet from your reference, and the existing plumbing positions.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>The main ceiling is assumed to be 2.80 m high; the confirmed 40 cm drop puts the corridor ceiling at 2.40 m in this model. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. The bathrooms share the photographed dark marble. Their 60 cm tile spacing is provisional; window heights and exact tile sizes still need measurements. Unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
 `;
 
 let renderer;
@@ -102,6 +103,7 @@ orbit.screenSpacePanning = false;
 const world = await buildWorld(scene, renderer);
 const rendering = createRendering(renderer, scene, camera);
 let mode = "overview",
+  lighting = "day",
   activeRoom = rooms[0],
   yaw = 0,
   pitch = 0,
@@ -136,7 +138,12 @@ function resetOverview() {
 }
 function updateRoomUI(room) {
   // Expose for the dark tiled interior, like the owner's bathroom photographs.
-  const exposure = mode === "walk" && room?.id === "ensuite" ? 2.8 : 1.1;
+  const exposure =
+    lighting === "night"
+      ? 1.35
+      : mode === "walk" && room?.id === "ensuite"
+        ? 2.8
+        : 1.1;
   if (renderer.toneMappingExposure !== exposure) {
     renderer.toneMappingExposure = exposure;
     renderNeeded = true;
@@ -162,7 +169,25 @@ function closeRooms() {
 }
 function saveView() {
   const hash = mode === "walk" ? `room=${activeRoom.id}` : "overview";
-  history.replaceState(null, "", `#${hash}`);
+  history.replaceState(
+    null,
+    "",
+    `#${hash}${lighting === "night" ? "&lighting=night" : ""}`,
+  );
+}
+function setLighting(next) {
+  lighting = next === "night" ? "night" : "day";
+  world.setLighting(lighting);
+  document.body.classList.toggle("night", lighting === "night");
+  for (const value of ["day", "night"]) {
+    const button = document.querySelector(`#${value}-light`);
+    button.classList.toggle("active", value === lighting);
+    button.setAttribute("aria-pressed", String(value === lighting));
+  }
+  renderer.shadowMap.needsUpdate = true;
+  renderNeeded = true;
+  updateRoomUI(mode === "walk" ? activeRoom : null);
+  saveView();
 }
 function setMode(next) {
   mode = next;
@@ -228,6 +253,8 @@ function visit(id) {
 document
   .querySelectorAll("[data-room]")
   .forEach((b) => b.addEventListener("click", () => visit(b.dataset.room)));
+document.querySelector("#day-light").onclick = () => setLighting("day");
+document.querySelector("#night-light").onclick = () => setLighting("night");
 document.querySelector("#enter").onclick = () => visit("living");
 document.querySelector("#walk").onclick = () => visit(activeRoom.id);
 document.querySelector("#overview").onclick = () => setMode("overview");
@@ -395,7 +422,9 @@ new ResizeObserver(resize).observe(container);
 resize();
 const initialHash = location.hash;
 setMode("overview");
-const initialRoom = new URLSearchParams(initialHash.slice(1)).get("room");
+const initialView = new URLSearchParams(initialHash.slice(1));
+if (initialView.get("lighting") === "night") setLighting("night");
+const initialRoom = initialView.get("room");
 if (initialRoom && rooms.some((r) => r.id === initialRoom)) visit(initialRoom);
 let lastSnapshot = 0;
 function frame(time) {
@@ -467,6 +496,8 @@ function frame(time) {
     lastSnapshot = time;
     window.__koma = {
       mode,
+      lighting,
+      lightState: world.lightingState(),
       room: activeRoom.id,
       position: {
         x: camera.position.x,
