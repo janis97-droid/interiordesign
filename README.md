@@ -12,6 +12,10 @@ Entrance lighting: [day](docs/entrance-day.png) · [night](docs/entrance-night.p
 
 Owner-corrected layout: [relocated guest-room entrance](docs/guest-entry.png).
 
+The walnut kitchen: [entrance view](docs/kitchen-entrance.png) · [overhead plan](docs/kitchen-plan.png) · [night](docs/kitchen-night.png) · [dimensions and PDF verification](docs/kitchen-dimensions.md).
+
+The kitchen's recessed sink bay and two narrow windows now follow the original plan and the owner's latest photo. Window sills at 1.20 m and heads at 2.30 m are provisional photo estimates. The L-shaped walnut installation is 4.374 m along the solid wall and 2.00 m along the sink return (including the shared corner), with a 75 cm sink, 2.10 × 0.95 m island, three stools and three lanterns. The main working aisle is 1.10 m; the sink aisle is 1.64 m.
+
 ## Run
 
 Requires Node.js 24 and npm. In the repository directory:
@@ -28,7 +32,8 @@ Build with `npm run build`; serve the result with `npm run preview`. All geometr
 - **Overview:** drag to orbit, scroll/pinch to zoom, right-drag/two-finger drag to pan.
 - **Walk:** WASD or arrow keys to move; drag the view to look. Shift walks faster.
 - **Phone/tablet:** drag the joystick to move; drag the scene to look. Open **Rooms** for shortcuts.
-- **Day / Night:** switch between sunlight and warm entrance/corridor lighting without changing the camera. The chosen lighting stays active when changing rooms or opening the overview.
+- **Kitchen view / Kitchen plan:** revisit the annotated entrance angle or a labeled overhead view. Share `#room=living&view=kitchen-entrance` or `#overview&view=kitchen-plan`.
+- **Day / Night:** switch between sunlight and warm kitchen/entrance/corridor lighting without changing the camera. The chosen lighting stays active when changing rooms or opening the overview.
 - **Escape:** return to overview. Reset returns to the current room's starting view.
 - Share `#room=living`, `#room=bedroom`, etc. for a particular room; add `&lighting=night` to share the night setting.
 

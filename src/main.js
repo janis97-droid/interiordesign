@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildWorld } from "./world.js";
 import { createRendering } from "./rendering.js";
+import { kitchenIsland, kitchenUnits } from "./kitchen-layout.js";
 import { livingTV } from "./additions.js";
 import { ensuitePlumbing } from "./ensuite-layout.js";
 import { largeBathroomDetails } from "./bathroom-details-layout.js";
@@ -49,6 +50,8 @@ document.querySelector("#app").innerHTML = `
     <div class="view-title"><span class="eyebrow" id="view-kicker">A NEW PERSPECTIVE</span><h2 id="view-title">The whole picture.</h2><p id="view-description">Take a look around. Then step into a room.</p></div>
     <div class="north-mark" aria-label="Plan orientation marker"><span>PLAN</span><svg viewBox="0 0 32 40" aria-hidden="true"><path d="m16 5 9 26-9-5-9 5Z" fill="none" stroke="currentColor"/><path d="M16 5v21" stroke="currentColor"/></svg></div>
     <div id="hotspots" aria-hidden="true"></div>
+    <div class="kitchen-views" role="group" aria-label="Kitchen views"><button id="kitchen-view">Kitchen view</button><button id="kitchen-plan">Kitchen plan</button></div>
+    <div id="kitchen-labels" aria-hidden="true"></div>
     <div class="mini-map" id="mini-map"><div class="mini-map-heading"><span>YOU ARE HERE</span><span id="mini-room">Living</span></div><svg id="map" viewBox="-0.5 -0.5 16.5 14.3" aria-label="Your position in the floor plan"></svg></div>
     <div class="scene-bottom">
       <div class="view-hint" id="view-hint"><span class="mouse-icon" aria-hidden="true"></span><span>Drag to orbit <b>·</b> Scroll to zoom</span></div>
@@ -63,7 +66,7 @@ document.querySelector("#app").innerHTML = `
     <div id="loading"><span class="loading-mark">${icon("volume")}</span><strong>Making room for you.</strong><span>Preparing your home…</span></div>
     <div id="toast" role="status"></div>
   </main>
-  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">ROOM BY ROOM</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. We are building up the rooms from your real space. The first additions are a 65-inch TV facing the living room and 5 cm floor-matching skirting outside the bathrooms. The 1 × 1 m grey floor tiles, black frames, shutter covers, small-toilet wave tiles, and dark marble in both bathrooms now follow your photos. The entrance and corridor ceiling is 40 cm below the main ceiling, ending at the living-room entrance, with a white AC grille, three warm magnetic LED tracks and one spotlight, plus a fourth long magnetic track in the corridor. Switch between Day and Night to see the lighting. The parents’ bathroom includes the continuous triangular tiled ledge, the white wall-hung toilet from your reference, and the existing plumbing positions. The small corridor WC now has a matching white wall-hung toilet. The large bathroom has the smaller, raised window shifted right, plus the service opening and plumbing details visible in your video. A washing machine sits inside the large bathroom around the tiled partition, with its front facing the open aisle.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>The main ceiling is assumed to be 2.80 m high; the confirmed 40 cm drop puts the corridor ceiling at 2.40 m in this model. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. The bathrooms share the photographed dark marble. Their 60 cm tile spacing is provisional; window heights and exact tile sizes still need measurements. Unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
+  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">ROOM BY ROOM</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. We are building up the rooms from your real space. The first additions are a 65-inch TV facing the living room and 5 cm floor-matching skirting outside the bathrooms. The 1 × 1 m grey floor tiles, black frames, shutter covers, small-toilet wave tiles, and dark marble in both bathrooms now follow your photos. The entrance and corridor ceiling is 40 cm below the main ceiling, ending at the living-room entrance, with a white AC grille, three warm magnetic LED tracks and one spotlight, plus a fourth long magnetic track in the corridor. Switch between Day and Night to see the lighting. The parents’ bathroom includes the continuous triangular tiled ledge, the white wall-hung toilet from your reference, and the existing plumbing positions. The small corridor WC now has a matching white wall-hung toilet. The large bathroom has the smaller, raised window shifted right, plus the service opening and plumbing details visible in your video. A washing machine sits inside the large bathroom around the tiled partition, with its front facing the open aisle.</p><p>The kitchen now has carved walnut cabinets, a beige stone island and three warm lanterns. The L-shaped cabinet run connects the solid wall beside the stairs to the sink beneath the two narrow windows. The sink recess and opening widths follow the original plan; the 1.20 m sill height is a provisional photo estimate approved by the owner. The 2.10 × 0.95 m island has a 1.10 m working aisle. Kitchen plan shows the fitted layout. The kitchen sink recess and its windows have been corrected to the PDF and photo; other rooms and openings are preserved.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>The main ceiling is assumed to be 2.80 m high; the confirmed 40 cm drop puts the corridor ceiling at 2.40 m in this model. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. The bathrooms share the photographed dark marble. Their 60 cm tile spacing is provisional; window heights and exact tile sizes still need measurements. Unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
 `;
 
 let renderer;
@@ -103,6 +106,7 @@ orbit.enablePan = true;
 orbit.screenSpacePanning = false;
 const world = await buildWorld(scene, renderer);
 const rendering = createRendering(renderer, scene, camera);
+let kitchenFocus = null;
 let mode = "overview",
   lighting = "day",
   activeRoom = rooms[0],
@@ -132,6 +136,7 @@ function resetOverview() {
   camera.updateProjectionMatrix();
   const fit = Math.max(1, 0.9 / camera.aspect);
   orbit.minDistance = 11;
+  orbit.minPolarAngle = 0.15;
   orbit.maxDistance = Math.max(38, 38 * fit);
   orbit.target.set(7.7, 0, 6.8);
   camera.position.set(7.7 + 14.8 * fit, 22 * fit, 6.8 + 19.7 * fit);
@@ -162,7 +167,9 @@ function updateRoomUI(room) {
     document.querySelector("#view-title").textContent =
       room?.name || "Between spaces";
     document.querySelector("#view-description").textContent =
-      room?.size || "Take your time. Make yourself at home.";
+      room?.id === "dining"
+        ? "Walnut & stone · 2.10 × 0.95 m island"
+        : room?.size || "Take your time. Make yourself at home.";
     document.querySelector("#mini-room").textContent = room?.name || "Hall";
   }
 }
@@ -177,7 +184,7 @@ function saveView() {
   history.replaceState(
     null,
     "",
-    `#${hash}${lighting === "night" ? "&lighting=night" : ""}`,
+    `#${hash}${kitchenFocus ? `&view=kitchen-${kitchenFocus}` : ""}${lighting === "night" ? "&lighting=night" : ""}`,
   );
 }
 function setLighting(next) {
@@ -195,6 +202,8 @@ function setLighting(next) {
   saveView();
 }
 function setMode(next) {
+  kitchenFocus = null;
+  document.body.classList.remove("kitchen-plan");
   mode = next;
   const walk = mode === "walk";
   world.setMode(mode);
@@ -243,7 +252,9 @@ function visit(id) {
         ? ensuitePlumbing.toilet
         : room.id === "bath"
           ? largeBathroomDetails.manifold
-          : room.look;
+          : room.id === "dining"
+            ? [14.55, 3.75]
+            : room.look;
   yaw = Math.atan2(-(look[0] - room.point[0]), -(look[1] - room.point[1]));
   pitch =
     room.id === "ensuite"
@@ -264,6 +275,41 @@ function visit(id) {
     container.classList.add("arriving");
   }
 }
+function fitKitchenPlan() {
+  camera.fov = 43;
+  camera.near = 0.1;
+  camera.updateProjectionMatrix();
+  orbit.minDistance = 5;
+  orbit.minPolarAngle = 0.001;
+  const fit = Math.max(1, 1.2 / camera.aspect);
+  orbit.target.set(11.65, 0, 2.8);
+  camera.position.set(11.65, 9.5 * fit, 2.801);
+  orbit.update();
+  renderNeeded = true;
+}
+function showKitchen(view) {
+  if (view === "plan") {
+    setMode("overview");
+    kitchenFocus = "plan";
+    document.body.classList.add("kitchen-plan");
+    fitKitchenPlan();
+    document.querySelector("#view-title").textContent =
+      "The kitchen, measured.";
+    document.querySelector("#view-description").textContent =
+      "5.80 m main span · 65 cm sink recess";
+  } else {
+    visit("dining");
+    kitchenFocus = "entrance";
+    camera.position.set(7.8, EYE_HEIGHT, 4.35);
+    yaw = -1.25;
+    pitch = -0.22;
+    camera.rotation.set(pitch, yaw, 0, "YXZ");
+    renderNeeded = true;
+  }
+  saveView();
+}
+document.querySelector("#kitchen-view").onclick = () => showKitchen("entrance");
+document.querySelector("#kitchen-plan").onclick = () => showKitchen("plan");
 document
   .querySelectorAll("[data-room]")
   .forEach((b) => b.addEventListener("click", () => visit(b.dataset.room)));
@@ -278,7 +324,11 @@ document.querySelector(".brand").onclick = (e) => {
   closeRooms();
 };
 document.querySelector("#reset").onclick = () =>
-  mode === "walk" ? visit(activeRoom.id) : resetOverview();
+  kitchenFocus
+    ? showKitchen(kitchenFocus)
+    : mode === "walk"
+      ? visit(activeRoom.id)
+      : resetOverview();
 document.querySelector("#next-room").onclick = () =>
   visit(
     rooms[(rooms.findIndex((r) => r.id === activeRoom.id) + 1) % rooms.length]
@@ -421,13 +471,27 @@ const hotspots = hotspotRooms.map((room, i) => {
   document.querySelector("#hotspots").appendChild(el);
   return { el, point: new THREE.Vector3(room.point[0], 0.25, room.point[1]) };
 });
+const kitchenLabels = [
+  ["Island · 210 × 95 cm", kitchenIsland.x, 0.95, kitchenIsland.z],
+  ["Walnut cabinets · 60 cm deep", 12.8, 1.05, kitchenUnits[1].z],
+  ["75 cm sink · recessed bay", 14.75, 0.95, 3.8],
+  ["110 cm working aisle", 12.1, 0.06, 3.72],
+  ["3 stools · 130 cm behind occupied seats", 11.884, 0.06, 1.3],
+].map(([text, x, y, z]) => {
+  const el = document.createElement("span");
+  el.className = "kitchen-label";
+  el.textContent = text;
+  document.querySelector("#kitchen-labels").appendChild(el);
+  return { el, point: new THREE.Vector3(x, y, z) };
+});
 const projected = new THREE.Vector3();
 function resize() {
   const { width, height } = container.getBoundingClientRect();
   renderer.setSize(width, height);
   rendering.resize(width, height);
   camera.aspect = width / height;
-  if (mode === "overview") resetOverview();
+  if (mode === "overview")
+    kitchenFocus === "plan" ? fitKitchenPlan() : resetOverview();
   else camera.fov = window.innerWidth <= 800 ? 82 : 65;
   camera.updateProjectionMatrix();
   renderNeeded = true;
@@ -440,16 +504,33 @@ const initialView = new URLSearchParams(initialHash.slice(1));
 if (initialView.get("lighting") === "night") setLighting("night");
 const initialRoom = initialView.get("room");
 if (initialRoom && rooms.some((r) => r.id === initialRoom)) visit(initialRoom);
+if (initialView.get("view") === "kitchen-plan") showKitchen("plan");
+else if (initialView.get("view") === "kitchen-entrance")
+  showKitchen("entrance");
 let lastSnapshot = 0;
 function frame(time) {
   const dt = Math.min((time - lastTime) / 1000, 0.1);
   lastTime = time;
   if (mode === "overview") {
     orbit.update();
-    for (const h of hotspots) {
+    for (const h of [...hotspots, ...kitchenLabels]) {
       projected.copy(h.point).project(camera);
-      h.el.style.left = `${(projected.x * 0.5 + 0.5) * container.clientWidth}px`;
-      h.el.style.top = `${(-projected.y * 0.5 + 0.5) * container.clientHeight}px`;
+      let left = (projected.x * 0.5 + 0.5) * container.clientWidth;
+      let top = (-projected.y * 0.5 + 0.5) * container.clientHeight;
+      if (h.el.classList.contains("kitchen-label")) {
+        const halfWidth = h.el.offsetWidth / 2 + 8;
+        const halfHeight = h.el.offsetHeight / 2 + 8;
+        left = Math.max(
+          halfWidth,
+          Math.min(container.clientWidth - halfWidth, left),
+        );
+        top = Math.max(
+          halfHeight,
+          Math.min(container.clientHeight - halfHeight, top),
+        );
+      }
+      h.el.style.left = `${left}px`;
+      h.el.style.top = `${top}px`;
       h.el.style.visibility = projected.z < 1 ? "visible" : "hidden";
     }
   } else {
@@ -467,6 +548,10 @@ function frame(time) {
       forward /= length;
     }
     if (!dialog.open && (strafe || forward)) {
+      if (kitchenFocus) {
+        kitchenFocus = null;
+        saveView();
+      }
       const speed = keys.has("ShiftLeft") || keys.has("ShiftRight") ? 3.1 : 1.9;
       const dx =
           (Math.cos(yaw) * strafe - Math.sin(yaw) * forward) * speed * dt,
@@ -523,6 +608,8 @@ function frame(time) {
       drawCalls: renderer.info.render.calls,
       triangles: renderer.info.render.triangles,
       obstacles: world.obstacles,
+      kitchenBounds: world.kitchenBounds,
+      kitchenFocus,
     };
   }
 }

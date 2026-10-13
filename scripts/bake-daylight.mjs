@@ -23,12 +23,14 @@ import {
 } from "../src/daylight-layout.js";
 import { ensuiteBox } from "../src/ensuite-layout.js";
 import { bathroomWasher } from "../src/bathroom-details-layout.js";
+import { kitchenBakeBoxes, kitchenEmitters } from "../src/kitchen-layout.js";
 import {
   ceilingSections,
   ceilingHeight,
-  interiorEmitters,
+  interiorEmitters as entranceEmitters,
   warmLightColor,
 } from "../src/entrance-layout.js";
+const interiorEmitters = [...entranceEmitters, ...kitchenEmitters];
 
 const imagePath = new URL("../src/assets/daylight.png", import.meta.url);
 const nightImagePath = new URL("../src/assets/nightlight.png", import.meta.url);
@@ -40,6 +42,7 @@ for (const name of [
   "../src/daylight-layout.js",
   "../src/entrance-layout.js",
   "../src/bathroom-details-layout.js",
+  "../src/kitchen-layout.js",
   "bake-daylight.mjs",
 ])
   hash.update(await readFile(new URL(name, import.meta.url)));
@@ -58,6 +61,50 @@ try {
 }
 
 const geometries = [];
+// Furniture volumes catch broad window shadows and block light below the
+// worktops; fine carved panels and stool contacts are handled by runtime AO.
+for (const box of kitchenBakeBoxes) {
+  const geometry = new THREE.BoxGeometry(
+    box.width,
+    box.height,
+    box.depth,
+  ).toNonIndexed();
+  geometry.translate(box.x, box.y + box.height / 2, box.z);
+  geometries.push(geometry);
+}
+const kitchenBounds = {
+  minX:
+    Math.min(...kitchenBakeBoxes.map((box) => box.x - box.width / 2)) - 0.01,
+  maxX:
+    Math.max(...kitchenBakeBoxes.map((box) => box.x + box.width / 2)) + 0.01,
+  minZ:
+    Math.min(...kitchenBakeBoxes.map((box) => box.z - box.depth / 2)) - 0.01,
+  maxZ:
+    Math.max(...kitchenBakeBoxes.map((box) => box.z + box.depth / 2)) + 0.01,
+};
+function kitchenAlbedo(point, normal) {
+  if (
+    point.x < kitchenBounds.minX ||
+    point.x > kitchenBounds.maxX ||
+    point.z < kitchenBounds.minZ ||
+    point.z > kitchenBounds.maxZ
+  )
+    return undefined;
+  const box = kitchenBakeBoxes.find(
+    (box) =>
+      Math.abs(point.x - box.x) <= box.width / 2 + 0.01 &&
+      Math.abs(point.z - box.z) <= box.depth / 2 + 0.01 &&
+      point.y >= box.y - 0.01 &&
+      point.y <= box.y + box.height + 0.01,
+  );
+  if (!box) return undefined;
+  // Stone tops reflect more light than the dark walnut doors and end panels.
+  return box.id !== "pantry" &&
+    normal.y > 0.9 &&
+    point.y >= box.y + box.height - 0.01
+    ? 0.52
+    : 0.22;
+}
 // The laundry appliance blocks light in the recess behind the tiled return.
 const washerGeometry = new THREE.BoxGeometry(
   bathroomWasher.depth,
@@ -214,11 +261,12 @@ function trace(includeNight) {
       pointInPolygon(point.x, point.z, room.polygon),
     );
     const albedo =
-      inBathroom && point.y < HEIGHT - 0.05
+      kitchenAlbedo(point, hitNormal) ??
+      (inBathroom && point.y < HEIGHT - 0.05
         ? 0.12
         : Math.abs(hitNormal.y) > 0.9 && point.y < 0.1
           ? 0.5
-          : 0.78;
+          : 0.78);
     throughput *= albedo;
     if (includeNight)
       nightResult.addScaledVector(
@@ -258,7 +306,35 @@ for (const patch of patches) {
     for (let x = 0; x < patch.pixelsWide; x++) {
       const u = x / (patch.pixelsWide - 1),
         v = y / (patch.pixelsHigh - 1);
-      if (patch.section) {
+      if (patch.box) {
+        const box = patch.box;
+        const minX = box.x - box.width / 2;
+        const minZ = box.z - box.depth / 2;
+        if (patch.face === "top") {
+          origin.set(
+            minX + box.width * u,
+            box.y + box.height + 0.009,
+            minZ + box.depth * v,
+          );
+          normal.set(0, 1, 0);
+        } else if (patch.face === "north" || patch.face === "south") {
+          const side = patch.face === "north" ? -1 : 1;
+          origin.set(
+            minX + box.width * u,
+            box.y + box.height * (1 - v),
+            box.z + side * (box.depth / 2 + 0.009),
+          );
+          normal.set(0, 0, side);
+        } else {
+          const side = patch.face === "west" ? -1 : 1;
+          origin.set(
+            box.x + side * (box.width / 2 + 0.009),
+            box.y + box.height * (1 - v),
+            minZ + box.depth * u,
+          );
+          normal.set(side, 0, 0);
+        }
+      } else if (patch.section) {
         const section = patch.section;
         if (patch.face === "bottom") {
           origin.set(

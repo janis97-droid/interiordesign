@@ -1138,3 +1138,91 @@ dialog dd {
     transition: none !important;
   }
 }
+
+/* Read-only presets for the furnished kitchen and its measured overhead view. */
+.kitchen-views {
+  position: absolute;
+  right: 30px;
+  top: 84px;
+  z-index: 8;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(248, 248, 239, 0.94);
+  box-shadow: 0 3px 18px #263b2c12;
+}
+.kitchen-views button {
+  border: 0;
+  background: transparent;
+  color: #36503c;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.kitchen-views button:hover,
+.kitchen-views button:focus-visible {
+  background: #e4e9d9;
+}
+#kitchen-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+  z-index: 5;
+}
+.kitchen-plan #kitchen-labels {
+  display: block;
+}
+.kitchen-plan #hotspots {
+  display: none;
+}
+.kitchen-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 8px 11px;
+  background: rgba(250, 248, 235, 0.96);
+  border: 1px solid #ccd2bf;
+  border-radius: 8px;
+  color: #304d38;
+  font-size: 11px;
+  white-space: nowrap;
+  box-shadow: 0 2px 12px #17281910;
+}
+.kitchen-plan .view-title {
+  background: rgba(250, 248, 240, 0.95);
+  padding: 16px 20px;
+  border-radius: 12px;
+}
+.kitchen-plan .view-title h2 {
+  font-size: 26px;
+}
+@media (max-width: 800px) {
+  .kitchen-views {
+    top: 210px;
+    right: 12px;
+  }
+  .kitchen-views button {
+    padding: 7px 8px;
+    font-size: 10px;
+  }
+  .kitchen-label {
+    font-size: 9px;
+    padding: 6px;
+  }
+  .kitchen-plan .view-title {
+    top: 118px;
+    padding: 10px 12px;
+  }
+  .kitchen-plan .view-title h2 {
+    font-size: 21px;
+  }
+}
+
+@media (max-width: 800px) {
+  .kitchen-plan .kitchen-views {
+    top: 73px;
+  }
+}

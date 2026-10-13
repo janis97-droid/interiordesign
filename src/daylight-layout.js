@@ -1,6 +1,7 @@
 import { walls, HEIGHT, footprint, balcony } from "./plan.js";
 import { ensuiteBox } from "./ensuite-layout.js";
 import { ceilingSections } from "./entrance-layout.js";
+import { kitchenBakeBoxes } from "./kitchen-layout.js";
 
 // Shared by the offline daylight bake and the runtime UVs. Eight samples per
 // metre capture soft bounced light; screen-space AO supplies the fine contacts.
@@ -15,6 +16,19 @@ export const floorBounds = {
   maxZ: Math.max(...[...footprint, ...balcony].map((p) => p[1])),
 };
 const surfaces = [];
+// Kitchen UVs are world aligned. Top: u increases with X, v with Z.
+// Vertical faces: u increases with X (north/south) or Z (east/west),
+// while v runs from the top to the bottom of the cabinet.
+for (const box of kitchenBakeBoxes) {
+  for (const face of ["top", "north", "south", "east", "west"])
+    surfaces.push({
+      id: `kitchen-${box.id}-${face}`,
+      width: face === "east" || face === "west" ? box.depth : box.width,
+      height: face === "top" ? box.depth : box.height,
+      box,
+      face,
+    });
+}
 for (const section of ceilingSections) {
   surfaces.push(
     {

@@ -40,6 +40,7 @@ export function skirtingRuns(wall) {
     const wallIndex = walls.indexOf(wall);
     if (
       (wallIndex >= 0 && wallIndex <= 7 && side < 0) ||
+      wall.exteriorSide === side ||
       (wallIndex === 9 && side > 0)
     )
       continue;
@@ -87,7 +88,12 @@ export function skirtingRuns(wall) {
         exclusions.some((poly) => pointInPolygon(...point, poly))
       )
         continue;
-      const floorY = pointInPolygon(...point, openLivingArea) ? 0.003 : 0;
+      const floorY =
+        pointInPolygon(...point, openLivingArea) ||
+        wallIndex === 24 ||
+        wallIndex === 25
+          ? 0.003
+          : 0;
       const previous = runs.at(-1);
       if (
         previous?.side === side &&

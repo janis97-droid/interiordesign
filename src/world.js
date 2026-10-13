@@ -5,6 +5,8 @@ import { buildEnsuite } from "./ensuite.js";
 import { ensuiteObstacles } from "./ensuite-layout.js";
 import { buildEntrance } from "./entrance.js";
 import { buildBathroomDetails } from "./bathroom-details.js";
+import { buildKitchen } from "./kitchen.js";
+import { kitchenObstacles } from "./kitchen-layout.js";
 import { bathroomObstacles } from "./bathroom-details-layout.js";
 import {
   p,
@@ -13,6 +15,7 @@ import {
   balcony,
   walls,
   bathroomFloors,
+  kitchenBay,
 } from "./plan.js";
 import { createPhotoFinishes } from "./finishes.js";
 import { createEnvironment } from "./rendering.js";
@@ -30,7 +33,11 @@ export async function buildWorld(scene, renderer) {
   const architecture = new THREE.Group(),
     ceiling = new THREE.Group();
   root.add(architecture, ceiling);
-  const obstacles = [...ensuiteObstacles, ...bathroomObstacles];
+  const obstacles = [
+    ...ensuiteObstacles,
+    ...bathroomObstacles,
+    ...kitchenObstacles,
+  ];
   const material = (color, roughness = 0.8, extra = {}) =>
     new THREE.MeshStandardMaterial({ color, roughness, ...extra });
   const finishes = await createPhotoFinishes();
@@ -153,6 +160,16 @@ export async function buildWorld(scene, renderer) {
   floor(footprint, floorMaterial);
   // Keep this reflection local to the open living/kitchen floor.
   rectFloor(278, 414, 1175, 744, livingFloorMaterial, 0.003);
+  floor(
+    [
+      [kitchenBay.mainCenterX, kitchenBay.northCenterZ],
+      [kitchenBay.backCenterX, kitchenBay.northCenterZ],
+      [kitchenBay.backCenterX, kitchenBay.southCenterZ],
+      [kitchenBay.mainCenterX, kitchenBay.southCenterZ],
+    ],
+    livingFloorMaterial,
+    0.003,
+  );
   for (const room of bathroomFloors)
     floor(room.polygon, finishes[room.material], 0.008);
   floor(balcony, material("#c0c1bc", 0.9));
@@ -443,6 +460,8 @@ export async function buildWorld(scene, renderer) {
   const ensuiteMaterials = buildEnsuite(architecture, finishes);
   const bathroomDetails = buildBathroomDetails(architecture, finishes);
   const entrance = buildEntrance(ceiling, plaster);
+  const kitchen = buildKitchen(root, ceiling, lit);
+  kitchen.setNight(false);
   const ceilingShape = new THREE.Shape(
     footprint.map(([x, z]) => new THREE.Vector2(x, -z)),
   );
@@ -566,13 +585,15 @@ export async function buildWorld(scene, renderer) {
   }
   batch(architecture);
   batch(ceiling);
-  batch(root, [architecture, ceiling]);
+  batch(kitchen.group);
+  batch(root, [architecture, ceiling, kitchen.group]);
   // Capture each real room once. Polished tiles reflect its windows and walls
   // without a costly mirror render on every frame or an unrelated stock HDRI.
   scene.background = sky;
   scene.fog = null;
   ground.visible = false;
   const reflectionRooms = [
+    [[13.5, 3.65], kitchen.reflectionMaterials],
     [p(519, 682), [livingFloorMaterial, tvScreen]],
     [
       p(225, 1210),
@@ -644,6 +665,7 @@ export async function buildWorld(scene, renderer) {
     ...bathroomDetails.wcMaterials,
     ...bathroomDetails.bathMaterials,
     ...Object.values(finishes),
+    ...kitchen.materials,
     ...entrance.materials.filter((mat) => mat.lightMap),
   ]);
   function applyLighting() {
@@ -671,12 +693,14 @@ export async function buildWorld(scene, renderer) {
       mat.lightMapIntensity = LIGHTMAP_RANGE * (walking || night ? 1 : 0.3);
     }
     entrance.setNight(night);
+    kitchen.setNight(night);
   }
   return {
     root,
     architecture,
     ceiling,
     obstacles,
+    kitchenBounds: kitchen.bounds,
     setMode(mode) {
       viewMode = mode;
       applyLighting();

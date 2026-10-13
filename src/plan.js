@@ -6,17 +6,48 @@ export const EYE_HEIGHT = 1.62;
 export const FLOOR_TILE_SIZE = 1; // Metres, confirmed by the owner.
 export const BALCONY_DOOR_WIDTH = 1.6; // Photo/tile estimate; frame to frame.
 export const p = (x, y) => [(x - 103) / SCALE, (y - 381) / SCALE];
+// Owner-approved correction from the original PDF's vector geometry and the
+// kitchen photograph. The plan fixes the recess/opening widths; the heights
+// remain provisional photo estimates until a site measurement is supplied.
+const pdfKitchenScale = 280.8 / 5.8;
+const mainEastInside = p(1175, 414)[0] - 0.11;
+const southInside = p(883, 744)[1] - 0.08;
+const northInside = southInside - (494.16 - 392.4) / pdfKitchenScale;
+export const kitchenBay = {
+  mainEastInside,
+  southInside,
+  northInside,
+  backInside: mainEastInside + (799.32 - 767.88) / pdfKitchenScale,
+  mainCenterX: mainEastInside + 0.11,
+  backCenterX: mainEastInside + (799.32 - 767.88) / pdfKitchenScale + 0.11,
+  northCenterZ: northInside - 0.11,
+  southCenterZ: southInside + 0.08,
+  windows: [
+    [403.08, 437.4],
+    [453.96, 485.76],
+  ].map(([a, b]) => ({
+    from: northInside + (a - 392.4) / pdfKitchenScale,
+    to: northInside + (b - 392.4) / pdfKitchenScale,
+    bottom: 1.2,
+    top: 2.3,
+  })),
+};
 export const footprint = [
-  [278, 403],
-  [1175, 403],
-  [1208, 762],
-  [990, 1337],
-  [104, 1337],
-  [104, 992],
-  [166, 992],
-  [166, 744],
-  [278, 744],
-].map(([x, y]) => p(x, y));
+  p(278, 403),
+  p(1175, 403),
+  [kitchenBay.mainCenterX, kitchenBay.northCenterZ],
+  [kitchenBay.backCenterX, kitchenBay.northCenterZ],
+  [kitchenBay.backCenterX, kitchenBay.southCenterZ],
+  ...[
+    [1208, 762],
+    [990, 1337],
+    [104, 1337],
+    [104, 992],
+    [166, 992],
+    [166, 744],
+    [278, 744],
+  ].map(([x, y]) => p(x, y)),
+];
 export const balcony = [
   [118, 404],
   [278, 404],
@@ -67,6 +98,13 @@ const balconyDoor = {
   passageFrom: 320 - (BALCONY_DOOR_WIDTH / 2) * SCALE,
 };
 const photoWindow = { transom: 0.28, shutterBox: true };
+const metricWall = (a, b, openings = [], thickness = 0.22) => ({
+  a,
+  b,
+  openings,
+  thickness,
+  finishes: [],
+});
 export const walls = [
   w(
     [278, 414],
@@ -78,13 +116,18 @@ export const walls = [
     ],
     0.22,
   ),
-  w(
-    [1175, 414],
-    [1175, 745],
-    [win(19, 123, { ...photoWindow, panels: 2 }), win(185, 282)],
-    0.22,
+  // Keep the larger low window north of the sink bay unchanged.
+  metricWall(
+    p(1175, 414),
+    [kitchenBay.mainCenterX, kitchenBay.northCenterZ],
+    [win(19 / SCALE, 123 / SCALE, { ...photoWindow, panels: 2 })],
   ),
-  w([1175, 745], [1208, 770], [], 0.2),
+  metricWall(
+    [kitchenBay.backCenterX, kitchenBay.southCenterZ],
+    p(1208, 770),
+    [],
+    0.2,
+  ),
   // Parents' bathroom photo: the window sits above a concealed-cistern ledge.
   w(
     [1208, 770],
@@ -135,7 +178,12 @@ export const walls = [
   w([590, 919], [590, 1337], [door(86, 160)], 0.16),
   w([590, 919], [883, 919], [], 0.16),
   w([883, 744], [883, 1337], [door(40, 111), door(332, 397)], 0.16),
-  w([883, 744], [1175, 744], [], 0.16),
+  metricWall(
+    p(883, 744),
+    [kitchenBay.backCenterX, kitchenBay.southCenterZ],
+    [],
+    0.16,
+  ),
   w([883, 1060], [1093, 1060], [], 0.12),
   // Owner confirmed the outlined extension was never built. Retain only the
   // solid section shown on the plan, ending at reference y=608 (~2.65 m long).
@@ -146,6 +194,28 @@ export const walls = [
     { from: 0, to: 71, side: 1, material: "marbleBath" },
     { from: 0, to: 71, side: -1, material: "marbleBath" },
   ]),
+  // Appended to keep established wall indices stable for finishes and fittings.
+  {
+    ...metricWall(
+      [kitchenBay.mainCenterX, kitchenBay.northCenterZ],
+      [kitchenBay.backCenterX, kitchenBay.northCenterZ],
+    ),
+    exteriorSide: -1,
+  },
+  {
+    ...metricWall(
+      [kitchenBay.backCenterX, kitchenBay.northCenterZ],
+      [kitchenBay.backCenterX, kitchenBay.southCenterZ],
+      kitchenBay.windows.map((window) => ({
+        ...window,
+        from: window.from - kitchenBay.northCenterZ,
+        to: window.to - kitchenBay.northCenterZ,
+        type: "window",
+        panels: 1,
+      })),
+    ),
+    exteriorSide: -1,
+  },
 ];
 // Bathroom finishes are shared by owner confirmation. Ranges are clipped to
 // each room; adjacent rooms retain their existing surfaces.
@@ -250,7 +320,7 @@ export const rooms = [
     size: "5.80 m wide",
     point: p(813, 607),
     look: p(1046, 505),
-    bounds: [728, 403, 1175, 744],
+    bounds: [728, 403, kitchenBay.backCenterX * SCALE + 103, 744],
   },
   {
     id: "balcony",
