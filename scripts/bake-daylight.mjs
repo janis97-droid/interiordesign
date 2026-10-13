@@ -22,6 +22,7 @@ import {
   LIGHTMAP_RANGE,
 } from "../src/daylight-layout.js";
 import { ensuiteBox } from "../src/ensuite-layout.js";
+import { bathroomWasher } from "../src/bathroom-details-layout.js";
 import {
   ceilingSections,
   ceilingHeight,
@@ -38,6 +39,7 @@ for (const name of [
   "../src/ensuite-layout.js",
   "../src/daylight-layout.js",
   "../src/entrance-layout.js",
+  "../src/bathroom-details-layout.js",
   "bake-daylight.mjs",
 ])
   hash.update(await readFile(new URL(name, import.meta.url)));
@@ -56,6 +58,18 @@ try {
 }
 
 const geometries = [];
+// The laundry appliance blocks light in the recess behind the tiled return.
+const washerGeometry = new THREE.BoxGeometry(
+  bathroomWasher.depth,
+  bathroomWasher.height,
+  bathroomWasher.width,
+).toNonIndexed();
+washerGeometry.translate(
+  bathroomWasher.point[0],
+  bathroomWasher.height / 2,
+  bathroomWasher.point[1],
+);
+geometries.push(washerGeometry);
 for (const section of ceilingSections) {
   const geometry = new THREE.BoxGeometry(
     section.width,

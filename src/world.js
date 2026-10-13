@@ -4,6 +4,8 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import { buildEnsuite } from "./ensuite.js";
 import { ensuiteObstacles } from "./ensuite-layout.js";
 import { buildEntrance } from "./entrance.js";
+import { buildBathroomDetails } from "./bathroom-details.js";
+import { bathroomObstacles } from "./bathroom-details-layout.js";
 import {
   p,
   HEIGHT,
@@ -28,7 +30,7 @@ export async function buildWorld(scene, renderer) {
   const architecture = new THREE.Group(),
     ceiling = new THREE.Group();
   root.add(architecture, ceiling);
-  const obstacles = [...ensuiteObstacles];
+  const obstacles = [...ensuiteObstacles, ...bathroomObstacles];
   const material = (color, roughness = 0.8, extra = {}) =>
     new THREE.MeshStandardMaterial({ color, roughness, ...extra });
   const finishes = await createPhotoFinishes();
@@ -166,7 +168,47 @@ export async function buildWorld(scene, renderer) {
     architecture.add(group);
     const fill = (a, b, lo, hi) => {
       if (b - a <= 0.005 || hi - lo <= 0.005) return;
-      box(group, b - a, hi - lo, wall.thickness, (a + b) / 2, (lo + hi) / 2, 0);
+      // A return tiled on both faces also has a tiled exposed end and top.
+      const wrapped = wall.finishes.find(
+        (f) =>
+          f.from <= a + 1e-6 &&
+          f.to >= b - 1e-6 &&
+          wall.finishes.some(
+            (other) =>
+              other.side === -f.side &&
+              other.material === f.material &&
+              other.from <= a + 1e-6 &&
+              other.to >= b - 1e-6,
+          ),
+      );
+      const core = box(
+        group,
+        b - a,
+        hi - lo,
+        wall.thickness,
+        (a + b) / 2,
+        (lo + hi) / 2,
+        0,
+        wrapped ? finishes[wrapped.material] : plaster,
+      );
+      if (wrapped) {
+        const pos = core.geometry.attributes.position,
+          normal = core.geometry.attributes.normal;
+        for (let i = 0; i < pos.count; i++) {
+          if (Math.abs(normal.getX(i)) > 0.9)
+            core.geometry.attributes.uv.setXY(
+              i,
+              pos.getZ(i) + wall.thickness / 2,
+              pos.getY(i) + (lo + hi) / 2,
+            );
+          else if (Math.abs(normal.getY(i)) > 0.9)
+            core.geometry.attributes.uv.setXY(
+              i,
+              pos.getX(i) + (a + b) / 2,
+              pos.getZ(i),
+            );
+        }
+      }
       // Face only the room's interior; clip finishes to the solid sections so
       // windows and doorways stay open. UVs use real metres on both axes.
       for (const finish of wall.finishes) {
@@ -399,6 +441,7 @@ export async function buildWorld(scene, renderer) {
     }
   }
   const ensuiteMaterials = buildEnsuite(architecture, finishes);
+  const bathroomDetails = buildBathroomDetails(architecture, finishes);
   const entrance = buildEntrance(ceiling, plaster);
   const ceilingShape = new THREE.Shape(
     footprint.map(([x, z]) => new THREE.Vector2(x, -z)),
@@ -531,7 +574,15 @@ export async function buildWorld(scene, renderer) {
   ground.visible = false;
   const reflectionRooms = [
     [p(519, 682), [livingFloorMaterial, tvScreen]],
-    [p(225, 1210), [finishes.marbleBath, finishes.floorBath]],
+    [
+      p(225, 1210),
+      [
+        finishes.marbleBath,
+        finishes.floorBath,
+        ...bathroomDetails.bathMaterials,
+      ],
+    ],
+    [p(162, 1056), bathroomDetails.wcMaterials],
     [
       p(960, 1200),
       [finishes.marbleEnsuite, finishes.floorEnsuite, ...ensuiteMaterials],
@@ -590,6 +641,8 @@ export async function buildWorld(scene, renderer) {
     livingFloorMaterial,
     skirtingMaterial,
     ...ensuiteMaterials,
+    ...bathroomDetails.wcMaterials,
+    ...bathroomDetails.bathMaterials,
     ...Object.values(finishes),
     ...entrance.materials.filter((mat) => mat.lightMap),
   ]);

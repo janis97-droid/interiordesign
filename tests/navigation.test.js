@@ -13,11 +13,70 @@ import {
 } from "../src/plan.js";
 import { skirtingRuns } from "../src/additions.js";
 import {
+  bathroomObstacles,
+  corridorToilet,
+  bathroomWasher,
+} from "../src/bathroom-details-layout.js";
+import {
   ensuiteBox,
   ensuiteObstacles,
   ensuitePlumbing,
   ensuiteToilet,
 } from "../src/ensuite-layout.js";
+
+test("corridor WC toilet blocks walking while its doorway and room destination stay accessible", () => {
+  const obstacles = [...ensuiteObstacles, ...bathroomObstacles];
+  for (const room of rooms)
+    assert.ok(canOccupy(...room.point, obstacles), room.id);
+  const [x, z] = corridorToilet.point;
+  assert.equal(canOccupy(x + 0.25, z, obstacles), false);
+  assert.ok(
+    canOccupy(...p(197, 1047), obstacles),
+    "corridor doorway remains clear",
+  );
+  const approach = moveWithCollision(
+    { x: p(218, 1044)[0], z },
+    -1.5,
+    0,
+    obstacles,
+  );
+  assert.ok(canOccupy(approach.x, approach.z, obstacles));
+  assert.ok(
+    approach.x >= x + corridorToilet.projection + 0.18,
+    "stop before the bowl",
+  );
+  assert.ok(approach.x < p(197, 1044)[0], "can enter the WC from the corridor");
+});
+
+test("laundry recess can be reached around its tiled return, while the washer blocks walking", () => {
+  const [x, z] = bathroomWasher.point;
+  assert.equal(canOccupy(x, z, bathroomObstacles), false, "washer cabinet");
+  assert.equal(
+    canOccupy(...p(150, 1225), bathroomObstacles),
+    false,
+    "tiled partition",
+  );
+  const aisle = p(206, 1175);
+  const around = moveWithCollision(
+    { x: aisle[0], z: aisle[1] },
+    0,
+    1.5,
+    bathroomObstacles,
+  );
+  assert.ok(around.z > p(104, 1225)[1] + 0.3, "walk around the return");
+  assert.ok(canOccupy(around.x, around.z, bathroomObstacles));
+  const approach = moveWithCollision(
+    { x: around.x, z },
+    -1.5,
+    0,
+    bathroomObstacles,
+  );
+  assert.ok(canOccupy(approach.x, approach.z, bathroomObstacles));
+  assert.ok(
+    approach.x >= x + bathroomWasher.depth / 2 + 0.18,
+    "stop at washer front",
+  );
+});
 
 test("extended boxing and toilet block walking while basin and shower approaches stay clear", () => {
   for (const room of rooms)

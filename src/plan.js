@@ -96,7 +96,12 @@ export const walls = [
   w(
     [104, 1337],
     [104, 992],
-    [win(92, 172), win(251, 306, { bottom: 1.05, top: 2.28, panels: 1 })],
+    [
+      // Owner's video correction: smaller, higher and to the right when facing
+      // the large bathroom's west wall. 75 × 80 cm, sill 1.50 m: estimates.
+      win(135, 190, { bottom: 1.5, top: 2.3, panels: 1 }),
+      win(251, 306, { bottom: 1.05, top: 2.28, panels: 1 }),
+    ],
     0.2,
     [{ from: 243, to: 343, side: 1, material: "charcoalWave" }],
   ),
@@ -135,6 +140,12 @@ export const walls = [
   // Owner confirmed the outlined extension was never built. Retain only the
   // solid section shown on the plan, ending at reference y=608 (~2.65 m long).
   w([728, 414], [728, 608], [], 0.19),
+  // Video/owner: a tiled return conceals the laundry corner inside the large
+  // bathroom. Its 97 cm projection and position are provisional photo estimates.
+  w([104, 1225], [175, 1225], [], 0.12, [
+    { from: 0, to: 71, side: 1, material: "marbleBath" },
+    { from: 0, to: 71, side: -1, material: "marbleBath" },
+  ]),
 ];
 // Bathroom finishes are shared by owner confirmation. Ranges are clipped to
 // each room; adjacent rooms retain their existing surfaces.
@@ -282,8 +293,8 @@ export const rooms = [
     name: "Small toilet",
     category: "Existing wave tiles",
     size: "White waves · charcoal window wall",
-    point: p(164, 1067),
-    look: p(107, 1038),
+    point: p(176, 1070),
+    look: p(112, 1044),
     bounds: [104, 994, 197, 1094],
   },
   {

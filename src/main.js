@@ -4,6 +4,7 @@ import { buildWorld } from "./world.js";
 import { createRendering } from "./rendering.js";
 import { livingTV } from "./additions.js";
 import { ensuitePlumbing } from "./ensuite-layout.js";
+import { largeBathroomDetails } from "./bathroom-details-layout.js";
 import {
   rooms,
   walls,
@@ -62,7 +63,7 @@ document.querySelector("#app").innerHTML = `
     <div id="loading"><span class="loading-mark">${icon("volume")}</span><strong>Making room for you.</strong><span>Preparing your home…</span></div>
     <div id="toast" role="status"></div>
   </main>
-  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">ROOM BY ROOM</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. We are building up the rooms from your real space. The first additions are a 65-inch TV facing the living room and 5 cm floor-matching skirting outside the bathrooms. The 1 × 1 m grey floor tiles, black frames, shutter covers, small-toilet wave tiles, and dark marble in both bathrooms now follow your photos. The entrance and corridor ceiling is 40 cm below the main ceiling, ending at the living-room entrance, with a white AC grille, three warm magnetic LED tracks and one spotlight, plus a fourth long magnetic track in the corridor. Switch between Day and Night to see the lighting. The parents’ bathroom includes the continuous triangular tiled ledge, the white wall-hung toilet from your reference, and the existing plumbing positions.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>The main ceiling is assumed to be 2.80 m high; the confirmed 40 cm drop puts the corridor ceiling at 2.40 m in this model. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. The bathrooms share the photographed dark marble. Their 60 cm tile spacing is provisional; window heights and exact tile sizes still need measurements. Unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
+  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">ROOM BY ROOM</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. We are building up the rooms from your real space. The first additions are a 65-inch TV facing the living room and 5 cm floor-matching skirting outside the bathrooms. The 1 × 1 m grey floor tiles, black frames, shutter covers, small-toilet wave tiles, and dark marble in both bathrooms now follow your photos. The entrance and corridor ceiling is 40 cm below the main ceiling, ending at the living-room entrance, with a white AC grille, three warm magnetic LED tracks and one spotlight, plus a fourth long magnetic track in the corridor. Switch between Day and Night to see the lighting. The parents’ bathroom includes the continuous triangular tiled ledge, the white wall-hung toilet from your reference, and the existing plumbing positions. The small corridor WC now has a matching white wall-hung toilet. The large bathroom has the smaller, raised window shifted right, plus the service opening and plumbing details visible in your video. A washing machine sits inside the large bathroom around the tiled partition, with its front facing the open aisle.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>The main ceiling is assumed to be 2.80 m high; the confirmed 40 cm drop puts the corridor ceiling at 2.40 m in this model. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. The bathrooms share the photographed dark marble. Their 60 cm tile spacing is provisional; window heights and exact tile sizes still need measurements. Unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
 `;
 
 let renderer;
@@ -143,7 +144,11 @@ function updateRoomUI(room) {
       ? 1.35
       : mode === "walk" && room?.id === "ensuite"
         ? 2.8
-        : 1.1;
+        : mode === "walk" && room?.id === "bath"
+          ? 2.8
+          : mode === "walk" && room?.id === "wc"
+            ? 1.5
+            : 1.1;
   if (renderer.toneMappingExposure !== exposure) {
     renderer.toneMappingExposure = exposure;
     renderNeeded = true;
@@ -236,9 +241,18 @@ function visit(id) {
       ? livingTV.lookAt
       : room.id === "ensuite"
         ? ensuitePlumbing.toilet
-        : room.look;
+        : room.id === "bath"
+          ? largeBathroomDetails.manifold
+          : room.look;
   yaw = Math.atan2(-(look[0] - room.point[0]), -(look[1] - room.point[1]));
-  pitch = room.id === "ensuite" ? -0.65 : -0.12;
+  pitch =
+    room.id === "ensuite"
+      ? -0.65
+      : room.id === "wc"
+        ? -0.72
+        : room.id === "bath"
+          ? -0.24
+          : -0.12;
   camera.rotation.set(pitch, yaw, 0, "YXZ");
   updateRoomUI(room);
   closeRooms();

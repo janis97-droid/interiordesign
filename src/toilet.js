@@ -55,8 +55,13 @@ function loft(profiles) {
   return geometry;
 }
 
-export function buildToilet(group, add, { ceramic, seat, seal, chrome }) {
-  const { width, projection, height } = ensuiteToilet;
+export function buildToilet(
+  group,
+  add,
+  { ceramic, seat, seal, chrome },
+  dimensions = ensuiteToilet,
+) {
+  const { width, projection, height } = dimensions;
   // Profile coordinates are fractions of the owner's estimated overall size.
   const surface = (profiles, mat) =>
     add(

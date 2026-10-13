@@ -9,6 +9,9 @@ async function ready(page, path = "./") {
 test("production site renders and every room destination is clear of furniture", async ({
   page,
 }) => {
+  // This tour renders nine rooms plus multiple full-resolution screenshots in
+  // software WebGL; give it a separate budget from the single-view tests.
+  test.setTimeout(90000);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {

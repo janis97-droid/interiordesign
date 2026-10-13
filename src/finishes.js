@@ -69,6 +69,9 @@ export async function createPhotoFinishes() {
         .replace(
           "#include <map_fragment>",
           `#include <map_fragment>
+        // Video reference: a charcoal/brown porcelain body with pale veining.
+        // Lift the darkest pigment and soften vein contrast in both bathrooms.
+        diffuseColor.rgb = diffuseColor.rgb * 0.82 + vec3(0.012, 0.011, 0.010);
         vec2 tileUV = vMapUv * 4.0;
         vec2 edge = min(fract(tileUV), 1.0 - fract(tileUV));
         vec2 pixel = max(fwidth(tileUV), vec2(0.0001));
@@ -82,7 +85,7 @@ export async function createPhotoFinishes() {
         roughnessFactor = mix(roughnessFactor, 0.9, tileJoint);`,
         );
     };
-    material.customProgramCacheKey = () => "marble-grout-v1";
+    material.customProgramCacheKey = () => "marble-grout-v2";
     return material;
   };
   const plasterBump = canvasTexture(
