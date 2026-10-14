@@ -110,12 +110,12 @@ export function skirtingRuns(wall) {
 const divider = walls.find(
   (wall) => wall.a[0] === p(728, 414)[0] && wall.b[1] === p(728, 608)[1],
 );
-const screenDiagonal = 65 * 0.0254;
+const screenDiagonal = 75 * 0.0254;
 export const livingTV = {
   wall: divider,
   width: (screenDiagonal * 16) / Math.hypot(16, 9),
   height: (screenDiagonal * 9) / Math.hypot(16, 9),
-  centerHeight: 1.15, // Initial mounting assumption, adjustable with the owner.
+  centerHeight: 1.50, // Raised 35 cm per owner; mounting height is provisional.
   lookAt: [
     (divider.a[0] + divider.b[0]) / 2,
     (divider.a[1] + divider.b[1]) / 2,

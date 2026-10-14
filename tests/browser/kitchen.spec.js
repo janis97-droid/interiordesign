@@ -5,7 +5,7 @@ import { canOccupy, kitchenBay } from "../../src/plan.js";
 test("shared kitchen views show the fitted furniture, preserve the camera at night, and keep plan labels visible on mobile", async ({
   page,
 }) => {
-  test.setTimeout(90000);
+  test.setTimeout(150000);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("./#room=living&view=kitchen-entrance");

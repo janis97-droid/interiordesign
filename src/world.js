@@ -6,6 +6,8 @@ import { ensuiteObstacles } from "./ensuite-layout.js";
 import { buildEntrance } from "./entrance.js";
 import { buildBathroomDetails } from "./bathroom-details.js";
 import { buildKitchen } from "./kitchen.js";
+import { buildLiving } from "./living.js";
+import { livingObstacles } from "./living-layout.js";
 import { kitchenObstacles } from "./kitchen-layout.js";
 import { bathroomObstacles } from "./bathroom-details-layout.js";
 import {
@@ -37,6 +39,7 @@ export async function buildWorld(scene, renderer) {
     ...ensuiteObstacles,
     ...bathroomObstacles,
     ...kitchenObstacles,
+    ...livingObstacles,
   ];
   const material = (color, roughness = 0.8, extra = {}) =>
     new THREE.MeshStandardMaterial({ color, roughness, ...extra });
@@ -462,6 +465,7 @@ export async function buildWorld(scene, renderer) {
   const entrance = buildEntrance(ceiling, plaster);
   const kitchen = buildKitchen(root, ceiling, lit);
   kitchen.setNight(false);
+  const living = buildLiving(root, lit);
   const ceilingShape = new THREE.Shape(
     footprint.map(([x, z]) => new THREE.Vector2(x, -z)),
   );
@@ -501,8 +505,7 @@ export async function buildWorld(scene, renderer) {
   }
   rectFloor(897, 775, 1145, 1050, material("#9e998c"), -0.13);
 
-  // Add furnishings room by room with the owner. The wall-mounted TV is the
-  // first requested addition; the former orange-X cabinet remains absent.
+  // Furnishings are added room by room using the owner's references.
   const hemi = new THREE.HemisphereLight("#edf4ff", "#989287", 0.08);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight("#fff9ef", 3.2);
@@ -586,7 +589,8 @@ export async function buildWorld(scene, renderer) {
   batch(architecture);
   batch(ceiling);
   batch(kitchen.group);
-  batch(root, [architecture, ceiling, kitchen.group]);
+  batch(living.group);
+  batch(root, [architecture, ceiling, kitchen.group, living.group]);
   // Capture each real room once. Polished tiles reflect its windows and walls
   // without a costly mirror render on every frame or an unrelated stock HDRI.
   scene.background = sky;
@@ -594,7 +598,10 @@ export async function buildWorld(scene, renderer) {
   ground.visible = false;
   const reflectionRooms = [
     [[13.5, 3.65], kitchen.reflectionMaterials],
-    [p(519, 682), [livingFloorMaterial, tvScreen]],
+    [
+      p(519, 682),
+      [livingFloorMaterial, tvScreen, ...living.reflectionMaterials],
+    ],
     [
       p(225, 1210),
       [
@@ -666,6 +673,7 @@ export async function buildWorld(scene, renderer) {
     ...bathroomDetails.bathMaterials,
     ...Object.values(finishes),
     ...kitchen.materials,
+    ...living.materials,
     ...entrance.materials.filter((mat) => mat.lightMap),
   ]);
   function applyLighting() {
@@ -694,6 +702,7 @@ export async function buildWorld(scene, renderer) {
     }
     entrance.setNight(night);
     kitchen.setNight(night);
+    living.setNight(night);
   }
   return {
     root,
@@ -701,6 +710,7 @@ export async function buildWorld(scene, renderer) {
     ceiling,
     obstacles,
     kitchenBounds: kitchen.bounds,
+    livingBounds: living.bounds,
     setMode(mode) {
       viewMode = mode;
       applyLighting();

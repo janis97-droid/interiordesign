@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildWorld } from "./world.js";
 import { createRendering } from "./rendering.js";
 import { kitchenIsland, kitchenUnits } from "./kitchen-layout.js";
-import { livingTV } from "./additions.js";
+import { livingView } from "./living-layout.js";
 import { ensuitePlumbing } from "./ensuite-layout.js";
 import { bathroomWasher } from "./bathroom-details-layout.js";
 import {
@@ -66,7 +66,7 @@ document.querySelector("#app").innerHTML = `
     <div id="loading"><span class="loading-mark">${icon("volume")}</span><strong>Making room for you.</strong><span>Preparing your home…</span></div>
     <div id="toast" role="status"></div>
   </main>
-  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">ROOM BY ROOM</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. We are building up the rooms from your real space. The first additions are a 65-inch TV facing the living room and 5 cm floor-matching skirting outside the bathrooms. The 1 × 1 m grey floor tiles, black frames, shutter covers, small-toilet wave tiles, and dark marble in both bathrooms now follow your photos. The entrance and corridor ceiling is 40 cm below the main ceiling, ending at the living-room entrance, with a white AC grille, three warm magnetic LED tracks and one spotlight, plus a fourth long magnetic track in the corridor. Switch between Day and Night to see the lighting. The parents’ bathroom includes the continuous triangular tiled ledge, the white wall-hung toilet from your reference, and the existing plumbing positions. The small corridor WC now has a matching white wall-hung toilet. The large bathroom has two windows: the existing raised window is retained, and the missing window has been added to the top wall marked in your rotated drawing. The second opening is provisionally 90 × 80 cm, with a 1.50 m sill. The service opening and plumbing details visible in your video remain. The old washer nook has been replaced by the L-shaped dark-tiled partition from your annotated drawing. The washer sits near the window, facing the open side on the left of your rotated overhead drawing. Wall lengths and thickness are provisional sketch estimates.</p><p>The kitchen now has carved walnut cabinets, a beige stone island and three warm lanterns. The L-shaped cabinet run connects the solid wall beside the stairs to the sink beneath the two narrow windows. The sink recess and opening widths follow the original plan; the 1.20 m sill height is a provisional photo estimate approved by the owner. The 2.10 × 0.95 m island has a 1.10 m working aisle. Kitchen plan shows the fitted layout. The kitchen sink recess and its windows have been corrected to the PDF and photo; other rooms and openings are preserved.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>The main ceiling is assumed to be 2.80 m high; the confirmed 40 cm drop puts the corridor ceiling at 2.40 m in this model. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. The bathrooms share the photographed dark marble. Their 60 cm tile spacing is provisional; window heights and exact tile sizes still need measurements. Unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
+  <dialog id="about-dialog" aria-labelledby="about-title"><button id="close-about" class="icon-button dialog-close" aria-label="Close details">${icon("close")}</button><span class="eyebrow">ROOM BY ROOM</span><h2 id="about-title">A starting point.<br>A place for possibilities.</h2><p>The layout is traced from your <strong>koma-b.pdf</strong> floor plan. We are building up the rooms from your real space. The living room now follows your reference with two cream sofas, red patterned cushions, a floral rug, and a dark walnut coffee table. A 75-inch TV faces the seating, with its centre raised to 1.50 m above the floor. The 5 cm floor-matching skirting remains outside the bathrooms. The 1 × 1 m grey floor tiles, black frames, shutter covers, small-toilet wave tiles, and dark marble in both bathrooms now follow your photos. The entrance and corridor ceiling is 40 cm below the main ceiling, ending at the living-room entrance, with a white AC grille, three warm magnetic LED tracks and one spotlight, plus a fourth long magnetic track in the corridor. Switch between Day and Night to see the lighting. The parents’ bathroom includes the continuous triangular tiled ledge, the white wall-hung toilet from your reference, and the existing plumbing positions. The small corridor WC now has a matching white wall-hung toilet. The large bathroom has two windows: the existing raised window is retained, and the missing window has been added to the top wall marked in your rotated drawing. The second opening is provisionally 90 × 80 cm, with a 1.50 m sill. The service opening and plumbing details visible in your video remain. The old washer nook has been replaced by the L-shaped dark-tiled partition from your annotated drawing. The washer sits near the window, facing the open side on the left of your rotated overhead drawing. Wall lengths and thickness are provisional sketch estimates.</p><p>The kitchen now has carved walnut cabinets, a beige stone island and three warm lanterns. The L-shaped cabinet run connects the solid wall beside the stairs to the sink beneath the two narrow windows. The sink recess and opening widths follow the original plan; the 1.20 m sill height is a provisional photo estimate approved by the owner. The 2.10 × 0.95 m island has a 1.10 m working aisle. Kitchen plan shows the fitted layout. The kitchen sink recess and its windows have been corrected to the PDF and photo; other rooms and openings are preserved.</p><dl><dt>Based on the plan</dt><dd>Room arrangement, the balcony, major openings, the angled façade, and the stairwell position.</dd><dt>Still to confirm</dt><dd>The main ceiling is assumed to be 2.80 m high; the confirmed 40 cm drop puts the corridor ceiling at 2.40 m in this model. The balcony doorway is estimated at 1.60 m wide from the tile grid and photos. The bathrooms share the photographed dark marble. Their 60 cm tile spacing is provisional; window heights and exact tile sizes still need measurements. Unphotographed rooms remain provisional.</dd><dt>One floor to explore</dt><dd>The stairs are shown for context. This walkthrough stays on the floor in the supplied plan; the stairwell is closed to walking.</dd></dl><p class="small-print">This is a design visualisation, not a measured survey or construction drawing.</p><button class="dialog-done" id="dialog-done">Back to exploring ${icon("arrow")}</button></dialog>
 `;
 
 let renderer;
@@ -244,10 +244,12 @@ function visit(id) {
   const room = rooms.find((r) => r.id === id) || rooms[0];
   activeRoom = room;
   setMode("walk");
-  camera.position.set(room.point[0], EYE_HEIGHT, room.point[1]);
+  const point =
+    room.id === "living" ? [livingView.point[0], room.point[1]] : room.point;
+  camera.position.set(point[0], EYE_HEIGHT, point[1]);
   const look =
     room.id === "living"
-      ? livingTV.lookAt
+      ? livingView.look
       : room.id === "ensuite"
         ? ensuitePlumbing.toilet
         : room.id === "bath"
@@ -255,7 +257,7 @@ function visit(id) {
           : room.id === "dining"
             ? [14.55, 3.75]
             : room.look;
-  yaw = Math.atan2(-(look[0] - room.point[0]), -(look[1] - room.point[1]));
+  yaw = Math.atan2(-(look[0] - point[0]), -(look[1] - point[1]));
   pitch =
     room.id === "ensuite"
       ? -0.65
@@ -263,7 +265,9 @@ function visit(id) {
         ? -0.72
         : room.id === "bath"
           ? -0.72
-          : -0.12;
+          : room.id === "living"
+            ? -0.2
+            : -0.12;
   camera.rotation.set(pitch, yaw, 0, "YXZ");
   updateRoomUI(room);
   closeRooms();
@@ -608,6 +612,7 @@ function frame(time) {
       drawCalls: renderer.info.render.calls,
       triangles: renderer.info.render.triangles,
       obstacles: world.obstacles,
+      livingBounds: world.livingBounds,
       kitchenBounds: world.kitchenBounds,
       kitchenFocus,
     };

@@ -1,7 +1,10 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/browser",
-  timeout: 60000,
+  // Initial room probes and shader compilation run on software WebGL in CI.
+  // Keep navigation assertions intact while allowing a completed GPU frame.
+  timeout: 120000,
+  expect: { timeout: 15000 },
   fullyParallel: false,
   workers: 1,
   reporter: process.env.CI ? [["list"], ["github"]] : [["list"]],

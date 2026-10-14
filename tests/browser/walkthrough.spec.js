@@ -11,7 +11,7 @@ test("production site renders and every room destination is clear of furniture",
 }) => {
   // This tour renders nine rooms plus multiple full-resolution screenshots in
   // software WebGL; give it a separate budget from the single-view tests.
-  test.setTimeout(90000);
+  test.setTimeout(150000);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
@@ -203,7 +203,7 @@ test("day and night persist across view changes and shared links without moving 
 }) => {
   // Both sets of room reflections and full-resolution screenshots run in
   // software WebGL; allow the same rendering budget as the full room tour.
-  test.setTimeout(90000);
+  test.setTimeout(120000);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await ready(page, "./#room=dining&lighting=night");
