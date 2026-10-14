@@ -8,13 +8,11 @@ export const corridorToilet = {
   projection: 0.53,
   height: 0.43,
 };
-// Owner confirmed the washer is inside the bathroom around the tiled return.
-// A generic 60 cm front-loader; exact product and recess dimensions unmeasured.
+// Owner's annotated correction: washer inside the new L near the window,
+// facing its open eastern side (left in the owner’s screenshot). Product and partition dimensions provisional.
 export const bathroomWasher = {
-  point: [
-    walls[5].a[0] + walls[5].thickness / 2 + 0.04 + 0.31,
-    p(104, 1260)[1],
-  ],
+  point: [1.68, 12.53],
+  rotation: Math.PI / 2,
   width: 0.6,
   depth: 0.62,
   height: 0.85,

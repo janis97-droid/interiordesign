@@ -105,6 +105,27 @@ const metricWall = (a, b, openings = [], thickness = 0.22) => ({
   thickness,
   finishes: [],
 });
+// Owner's annotated overhead correction: replace the old southern laundry
+// return with an L open to the east (left in the rotated screenshot).
+// Dimensions are sketch estimates. The existing west window is retained;
+// the owner also confirmed a second window on the marked southern wall.
+export const laundryPartition = {
+  corner: [1.12, 12.05],
+  openEnd: [2.02, 12.05],
+  thickness: 0.12,
+};
+const marblePartition = (a, b) => {
+  const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  return {
+    ...metricWall(a, b, [], laundryPartition.thickness),
+    finishes: [1, -1].map((side) => ({
+      from: 0,
+      to: length,
+      side,
+      material: "marbleBath",
+    })),
+  };
+};
 export const walls = [
   w(
     [278, 414],
@@ -135,7 +156,22 @@ export const walls = [
     [win(80, 188), win(401, 464, { bottom: 1.25, panels: 1 })],
     0.2,
   ),
-  w([990, 1337], [104, 1337], [win(178, 337), win(409, 502)], 0.2),
+  w(
+    [990, 1337],
+    [104, 1337],
+    [
+      win(178, 337),
+      win(409, 502),
+      // Missing second bathroom window at the owner's marked position.
+      // Centre X=2.20m, 90cm wide, 150cm sill: provisional sketch estimates.
+      win(887 - 2.65 * SCALE, 887 - 1.75 * SCALE, {
+        bottom: 1.5,
+        top: 2.3,
+        panels: 1,
+      }),
+    ],
+    0.2,
+  ),
   w(
     [104, 1337],
     [104, 992],
@@ -188,12 +224,11 @@ export const walls = [
   // Owner confirmed the outlined extension was never built. Retain only the
   // solid section shown on the plan, ending at reference y=608 (~2.65 m long).
   w([728, 414], [728, 608], [], 0.19),
-  // Video/owner: a tiled return conceals the laundry corner inside the large
-  // bathroom. Its 97 cm projection and position are provisional photo estimates.
-  w([104, 1225], [175, 1225], [], 0.12, [
-    { from: 0, to: 71, side: 1, material: "marbleBath" },
-    { from: 0, to: 71, side: -1, material: "marbleBath" },
-  ]),
+  // Keep index 23 stable while replacing the crossed-out return completely.
+  marblePartition(
+    [laundryPartition.corner[0], p(104, 1337)[1]],
+    laundryPartition.corner,
+  ),
   // Appended to keep established wall indices stable for finishes and fittings.
   {
     ...metricWall(
@@ -216,6 +251,7 @@ export const walls = [
     ),
     exteriorSide: -1,
   },
+  marblePartition(laundryPartition.corner, laundryPartition.openEnd),
 ];
 // Bathroom finishes are shared by owner confirmation. Ranges are clipped to
 // each room; adjacent rooms retain their existing surfaces.
@@ -372,7 +408,7 @@ export const rooms = [
     name: "Large bathroom",
     category: "Existing dark marble",
     size: "Dark marble · white veining",
-    point: p(278, 1150),
+    point: [2.55, 12.53],
     look: p(125, 1260),
     bounds: [104, 1094, 318, 1337],
   },

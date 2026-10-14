@@ -201,6 +201,9 @@ test("mobile rooms and a touch joystick work without horizontal overflow", async
 test("day and night persist across view changes and shared links without moving the visitor", async ({
   page,
 }) => {
+  // Both sets of room reflections and full-resolution screenshots run in
+  // software WebGL; allow the same rendering budget as the full room tour.
+  test.setTimeout(90000);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await ready(page, "./#room=dining&lighting=night");

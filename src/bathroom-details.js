@@ -164,7 +164,7 @@ export function buildBathroomDetails(parent, finishes) {
   const rim = new THREE.TorusGeometry(0.029, 0.003, 6, 28);
   rim.rotateX(-Math.PI / 2);
   add(drain, rim, mortar, 0, 0.011, 0);
-  const washer = mount(bathroomWasher.point, Math.PI / 2, (point) =>
+  const washer = mount(bathroomWasher.point, bathroomWasher.rotation, (point) =>
     wallUV(5, point),
   );
   bathMaterials.push(

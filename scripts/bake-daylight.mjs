@@ -107,10 +107,11 @@ function kitchenAlbedo(point, normal) {
 }
 // The laundry appliance blocks light in the recess behind the tiled return.
 const washerGeometry = new THREE.BoxGeometry(
-  bathroomWasher.depth,
-  bathroomWasher.height,
   bathroomWasher.width,
+  bathroomWasher.height,
+  bathroomWasher.depth,
 ).toNonIndexed();
+washerGeometry.rotateY(bathroomWasher.rotation);
 washerGeometry.translate(
   bathroomWasher.point[0],
   bathroomWasher.height / 2,

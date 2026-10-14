@@ -10,6 +10,7 @@ import {
   pointInPolygon,
   walls,
   SCALE,
+  laundryPartition,
 } from "../src/plan.js";
 import { skirtingRuns } from "../src/additions.js";
 import {
@@ -48,33 +49,72 @@ test("corridor WC toilet blocks walking while its doorway and room destination s
   assert.ok(approach.x < p(197, 1044)[0], "can enter the WC from the corridor");
 });
 
-test("laundry recess can be reached around its tiled return, while the washer blocks walking", () => {
+test("annotated L-shaped laundry nook has a reachable open side and frees the old washer corner", () => {
   const [x, z] = bathroomWasher.point;
   assert.equal(canOccupy(x, z, bathroomObstacles), false, "washer cabinet");
   assert.equal(
-    canOccupy(...p(150, 1225), bathroomObstacles),
+    canOccupy(laundryPartition.corner[0], 12.6, bathroomObstacles),
     false,
-    "tiled partition",
+    "west side wall",
   );
-  const aisle = p(206, 1175);
-  const around = moveWithCollision(
-    { x: aisle[0], z: aisle[1] },
-    0,
-    1.5,
-    bathroomObstacles,
+  assert.equal(
+    canOccupy(1.6, laundryPartition.corner[1], bathroomObstacles),
+    false,
+    "north return",
   );
-  assert.ok(around.z > p(104, 1225)[1] + 0.3, "walk around the return");
-  assert.ok(canOccupy(around.x, around.z, bathroomObstacles));
-  const approach = moveWithCollision(
-    { x: around.x, z },
-    -1.5,
-    0,
-    bathroomObstacles,
-  );
-  assert.ok(canOccupy(approach.x, approach.z, bathroomObstacles));
   assert.ok(
-    approach.x >= x + bathroomWasher.depth / 2 + 0.18,
-    "stop at washer front",
+    canOccupy(...p(150, 1225), bathroomObstacles),
+    "old partition removed",
+  );
+  assert.ok(
+    canOccupy(0.464, p(104, 1260)[1], bathroomObstacles),
+    "old washer corner clear",
+  );
+  assert.equal(
+    bathroomWasher.rotation,
+    Math.PI / 2,
+    "washer faces left in the rotated screenshot",
+  );
+  const entry = { x: 2.55, z: 10.16 };
+  const around = moveWithCollision(entry, 0, z - entry.z, bathroomObstacles);
+  assert.ok(
+    Math.abs(around.z - z) < 0.01,
+    "route from bathroom doorway around the open end",
+  );
+  const approach = moveWithCollision(around, -1, 0, bathroomObstacles);
+  assert.ok(canOccupy(approach.x, approach.z, bathroomObstacles));
+  assert.ok(approach.x < 2.3, "can approach the L through its open side");
+  assert.ok(
+    approach.x > x + bathroomWasher.depth / 2,
+    "stop at the washer front",
+  );
+  assert.ok(
+    x - bathroomWasher.depth / 2 >
+      laundryPartition.corner[0] + laundryPartition.thickness / 2,
+    "washer fits inside the side wall",
+  );
+  assert.ok(
+    z - bathroomWasher.width / 2 >
+      laundryPartition.corner[1] + laundryPartition.thickness / 2,
+    "washer clears the return",
+  );
+});
+
+test("both large bathroom windows stay clear of the corrected laundry partition", () => {
+  const original = walls[5].openings[0];
+  assert.equal(original.from, 135 / SCALE);
+  assert.equal(original.to, 190 / SCALE);
+  assert.equal(original.bottom, 1.5);
+  assert.equal(original.top, 2.3);
+  const added = walls[4].openings.find((o) => walls[4].a[0] - o.from < 2.86);
+  assert.ok(added, "second window on the marked southern wall");
+  assert.ok(Math.abs(added.to - added.from - 0.9) < 1e-9);
+  assert.equal(added.bottom, 1.5);
+  assert.equal(added.top, 2.3);
+  const westJamb = walls[4].a[0] - added.to;
+  assert.ok(
+    westJamb > laundryPartition.corner[0] + laundryPartition.thickness / 2,
+    "partition meets solid wall away from the second window",
   );
 });
 
