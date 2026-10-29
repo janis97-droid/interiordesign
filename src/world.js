@@ -465,7 +465,7 @@ export async function buildWorld(scene, renderer) {
   const entrance = buildEntrance(ceiling, plaster);
   const kitchen = buildKitchen(root, ceiling, lit);
   kitchen.setNight(false);
-  const living = buildLiving(root, lit);
+  const living = await buildLiving(root, lit);
   const ceilingShape = new THREE.Shape(
     footprint.map(([x, z]) => new THREE.Vector2(x, -z)),
   );

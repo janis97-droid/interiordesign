@@ -25,7 +25,7 @@ npm ci
 npm run dev
 ```
 
-Build with `npm run build`; serve the result with `npm run preview`. All geometry is generated locally: the published site has no CDN, font, analytics, login, or API dependency.
+Build with `npm run build`; serve the result with `npm run preview`. Geometry and assets are authored locally and served with the site: the published site has no CDN, font, analytics, login, or API dependency.
 
 ## Controls
 
@@ -97,3 +97,9 @@ Use the existing checkout (cloud tasks are already isolated; no additional workt
 For each room, match the existing shell and finishes from photos first, review the walkthrough together, then add agreed fittings and furniture. Keep photo-confirmed facts separate from estimates in this document.
 
 For a closer match to the real photos, see the [Blender + fSpy workflow and tool research](docs/realism-workflow.md).
+
+The west living-room sofa now uses an editable Blender source and an embedded-texture
+GLB at its approved 220 × 94 × 90 cm envelope and unchanged placement. Its upholstered
+cushions, piping and linen PBR material are authored separately from the house.
+The south sofa remains procedural. See the [working Blender authoring workflow](docs/blender-workflow.md)
+for installation, editing, export, preview and validation commands.

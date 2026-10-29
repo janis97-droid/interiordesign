@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "asset:sofa": "node scripts/blender-sofa.mjs",
+    "asset:sofa:export": "node scripts/blender-sofa.mjs --export-only",
+    "asset:sofa:preview": "node scripts/blender-sofa.mjs --preview",
     "dev": "vite --host 0.0.0.0",
     "build": "npm run bake:daylight && vite build",
     "bake:daylight": "node scripts/bake-daylight.mjs",

@@ -1,0 +1,7 @@
+* text=auto
+*.js text eol=lf
+*.mjs text eol=lf
+*.py text eol=lf
+*.glb binary
+*.blend binary
+*.png binary

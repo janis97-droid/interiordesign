@@ -16,6 +16,15 @@ test("reference living furniture renders inside its allotted footprints and leav
   await expect(page.locator("#loading")).toHaveCount(0);
   const state = await page.evaluate(() => window.__koma);
   expect(state.room).toBe("living");
+  const west = state.livingBounds.find(b => b.id === "west-sofa");
+  expect(west.source).toBe("blender-glb");
+  expect(west.max[1] - west.min[1]).toBeCloseTo(0.90, 2);
+  expect(west.min[1]).toBeCloseTo(0.003, 3);
+  expect((west.min[0] + west.max[0]) / 2).toBeCloseTo(3.10, 3);
+  expect((west.min[2] + west.max[2]) / 2).toBeCloseTo(1.85, 3);
+  expect(west.max[0] - west.min[0]).toBeCloseTo(0.94, 2);
+  expect(west.max[2] - west.min[2]).toBeCloseTo(2.20, 2);
+  expect(state.livingBounds.find(b => b.id === "south-sofa").source).toBe("procedural");
   expect(canOccupy(state.position.x, state.position.z, state.obstacles)).toBe(
     true,
   );
@@ -41,6 +50,11 @@ test("reference living furniture renders inside its allotted footprints and leav
     animations: "disabled",
     path: "test-results/living-furnished.png",
   });
+  await page.getByRole("button", { name: "Night", exact: true }).click();
+  await expect(page.locator("#night-light")).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => page.evaluate(() => window.__koma.livingBounds.find(b => b.id === 'west-sofa').source)).toBe('blender-glb');
+  await page.screenshot({ animations: 'disabled', path: 'test-results/living-blender-night.png' });
+  await page.getByRole("button", { name: "Day", exact: true }).click();
   await page
     .getByRole("button", { name: "Visit Balcony", exact: true })
     .click();

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import {
   createLivingMaterials,
   buildSofa,
@@ -16,12 +17,53 @@ import {
 } from "./living-layout.js";
 import { daylightUV, floorBounds } from "./daylight-layout.js";
 
-export function buildLiving(parent, lit) {
+export async function buildLiving(parent, lit) {
   const group = new THREE.Group();
   group.name = "Reference-inspired living room";
   parent.add(group);
   const materials = createLivingMaterials(),
     bounds = [];
+  const importedMaterials = new Set();
+  let westSofa = null;
+  try {
+    const gltf = await new GLTFLoader().loadAsync(
+      new URL("./assets/models/west-sofa.glb", import.meta.url).href,
+    );
+    westSofa = gltf.scene;
+    westSofa.userData.source = "blender-glb";
+    // Both cream sofas share one upholstery material; only the west model
+    // changes geometry. This avoids another full-room render batch.
+    let linen = null;
+    westSofa.traverse((mesh) => {
+      if (mesh.isMesh && mesh.material.name === "Cream linen | 25 cm UV repeat")
+        linen = mesh.material;
+    });
+    if (linen) {
+      materials.cream.dispose();
+      materials.cream = linen;
+    }
+    // Share the established accent finishes so the static room batcher can
+    // merge these parts with the other furniture. Keep the new PBR linen.
+    const sharedFinishes = new Map([
+      ["Cream linen | 25 cm UV repeat", materials.cream],
+      ["Oiled walnut", materials.wood],
+      ["Rust floral woven cushion", materials.red],
+      ["Ivory floral woven cushion", materials.ivory],
+      ["Linen piping", materials.piping],
+    ]);
+    westSofa.traverse((mesh) => {
+      if (!mesh.isMesh) return;
+      mesh.castShadow = mesh.receiveShadow = true;
+      const shared = sharedFinishes.get(mesh.material.name);
+      if (shared) mesh.material = shared;
+      else importedMaterials.add(mesh.material);
+      for (const key of ["map", "normalMap", "roughnessMap", "metalnessMap"])
+        if (mesh.material[key]) mesh.material[key].anisotropy = 8;
+    });
+  } catch (error) {
+    // A missing optional asset must not prevent visitors exploring the house.
+    console.warn("Blender sofa unavailable; using the original sofa.", error);
+  }
   // Small accents share one draw call, preserving their original colours and
   // roughness per vertex. Textured upholstery and metallic surfaces stay separate.
   const accents = new Set([
@@ -46,6 +88,7 @@ export function buildLiving(parent, lit) {
     const bounds3 = new THREE.Box3().setFromObject(object);
     bounds.push({
       id: item.id || "rug",
+      source: object.userData.source || "procedural",
       min: bounds3.min.toArray(),
       max: bounds3.max.toArray(),
     });
@@ -131,7 +174,8 @@ export function buildLiving(parent, lit) {
     });
   }
   place(buildRug(livingRug, materials), livingRug);
-  for (const sofa of livingSofas) place(buildSofa(sofa, materials), sofa);
+  for (const sofa of livingSofas)
+    place(sofa.id === "west-sofa" && westSofa ? westSofa : buildSofa(sofa, materials), sofa);
   place(buildTable(livingTable, materials), livingTable);
   const side = buildTable(livingSideTable, materials, true);
   side.add(buildLamp(materials, livingSideTable.height));
@@ -139,6 +183,7 @@ export function buildLiving(parent, lit) {
   const baked = [
     ...Object.values(materials).filter((material) => !accents.has(material)),
     accentMaterial,
+    ...importedMaterials,
   ].map((material) => {
     lit(material);
     material.onBeforeCompile = (shader) => {
@@ -186,7 +231,7 @@ export function buildLiving(parent, lit) {
     group,
     bounds,
     materials: baked,
-    reflectionMaterials: [materials.wood, materials.brass, accentMaterial],
+    reflectionMaterials: [materials.wood, materials.brass, materials.cream, accentMaterial, ...importedMaterials],
     setNight(night) {
       materials.shade.emissiveIntensity = night ? 1.6 : 0;
     },

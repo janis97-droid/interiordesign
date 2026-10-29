@@ -2,6 +2,11 @@
 
 Research checked 11 October 2026. The recommended next authoring workflow is **Blender + fSpy**, retaining this Three.js website for the public walkthrough.
 
+Workstation update, 29 October 2026: Blender 5.2.3 LTS is now installed on Windows,
+with a verified RTX 5060 OptiX preview and the first integrated sofa GLB. See the
+[current Blender workflow](blender-workflow.md) for the working installation and
+commands. The capability notes below describe the earlier environment.
+
 | Tool | Role in this project | Practical limit |
 | --- | --- | --- |
 | Blender with Cycles | Build detailed, editable room geometry; tune physically based materials and lighting; render reference views; prepare textures and GLB assets for the website. | A Cycles still render does not transfer unchanged into a real-time web viewer. Geometry/material export and baked lighting need deliberate integration. |
@@ -19,7 +24,7 @@ Research checked 11 October 2026. The recommended next authoring workflow is **B
 
 No tool can guarantee an exact reconstruction of unseen surfaces or exact material colour/lighting from these photos alone. Camera calibration, measurements and material references address different sources of error.
 
-## Verified here
+## Earlier environment verification (11 October 2026)
 
 - Blender **4.3.2** is installed and callable directly. A small background CPU Cycles render and GLB export both succeeded.
 - This Blender build has no OpenImageDenoise support. The capability check rendered with denoising disabled; a production render would need enough samples or a supported denoiser/build.
