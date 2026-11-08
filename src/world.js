@@ -7,6 +7,8 @@ import { buildEntrance } from "./entrance.js";
 import { buildBathroomDetails } from "./bathroom-details.js";
 import { buildKitchen } from "./kitchen.js";
 import { buildLiving } from "./living.js";
+import { buildHomeDesign } from "./home-design.js";
+import { homeObstacles } from "./home-layout.js";
 import { livingObstacles } from "./living-layout.js";
 import { kitchenObstacles } from "./kitchen-layout.js";
 import { bathroomObstacles } from "./bathroom-details-layout.js";
@@ -40,6 +42,7 @@ export async function buildWorld(scene, renderer) {
     ...bathroomObstacles,
     ...kitchenObstacles,
     ...livingObstacles,
+    ...homeObstacles,
   ];
   const material = (color, roughness = 0.8, extra = {}) =>
     new THREE.MeshStandardMaterial({ color, roughness, ...extra });
@@ -466,6 +469,7 @@ export async function buildWorld(scene, renderer) {
   const kitchen = buildKitchen(root, ceiling, lit);
   kitchen.setNight(false);
   const living = await buildLiving(root, lit);
+  const home = buildHomeDesign(root, ceiling, lit);
   const ceilingShape = new THREE.Shape(
     footprint.map(([x, z]) => new THREE.Vector2(x, -z)),
   );
@@ -590,7 +594,8 @@ export async function buildWorld(scene, renderer) {
   batch(ceiling);
   batch(kitchen.group);
   batch(living.group);
-  batch(root, [architecture, ceiling, kitchen.group, living.group]);
+  batch(home.group);
+  batch(root, [architecture, ceiling, kitchen.group, living.group, home.group]);
   // Capture each real room once. Polished tiles reflect its windows and walls
   // without a costly mirror render on every frame or an unrelated stock HDRI.
   scene.background = sky;
@@ -674,6 +679,7 @@ export async function buildWorld(scene, renderer) {
     ...Object.values(finishes),
     ...kitchen.materials,
     ...living.materials,
+    home.material,
     ...entrance.materials.filter((mat) => mat.lightMap),
   ]);
   function applyLighting() {
@@ -703,6 +709,7 @@ export async function buildWorld(scene, renderer) {
     entrance.setNight(night);
     kitchen.setNight(night);
     living.setNight(night);
+    home.setNight(night);
   }
   return {
     root,
@@ -711,6 +718,7 @@ export async function buildWorld(scene, renderer) {
     obstacles,
     kitchenBounds: kitchen.bounds,
     livingBounds: living.bounds,
+    homeBounds: home.bounds,
     setMode(mode) {
       viewMode = mode;
       applyLighting();

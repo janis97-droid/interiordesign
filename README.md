@@ -2,6 +2,49 @@
 
 A view-only Three.js walkthrough reconstructed from `koma-b.pdf`. Visitors can walk, look around, jump between nine rooms, and orbit a cutaway overview. The model follows the real home, with furnishings added room by room as requested. All design changes are maintained in the repository; there are no visitor editing controls or accounts.
 
+## Whole-house design — November 2026
+
+The owner's new brief completes the house in a warm palette: light ivory dry-room
+walls, the same grey porcelain floor, medium-dark walnut/oak furniture, tobacco
+sofas, muted olive and rust textiles, linen curtains and warm brass details.
+Existing bathroom wall tiles, approved shell, window openings, kitchen and
+living-room furniture footprints are retained. This supersedes the earlier
+room-by-room furnishing restriction and cream-sofa colour choice below.
+
+- **Living / kitchen:** tobacco linen on the approved sofa geometry, retained
+  walnut kitchen, traditional rug and tables, a new warm pendant and curtain panels.
+- **Primary bedroom:** 180 cm bed, padded channel headboard, two bedside tables,
+  reading lamps, 216 cm wardrobe, dresser, upholstered bench, rug and framed art.
+- **Guest bedroom:** 150 cm bed, bedside tables/lamps, 180 cm wardrobe and textiles.
+- **Study / flex room:** walnut desk, chair, bookcase and 208 cm daybed with cushions.
+  Furniture is freestanding; the safe-room shell and window remain intact.
+- **Bathrooms:** walnut vanities and open recessed basins, brass taps, framed
+  reflective panels, towel rails, walk-in glass screens and rainfall shower fittings.
+  The large bathroom gains a WC; the approved laundry partition/washer remain.
+- **Hall / balcony:** slim console and artwork; two outdoor chairs, round table,
+  ceramic planters and planting, with the slider approach kept clear.
+
+All new furniture dimensions are proposed selections fitted to this model, not
+measured existing furniture or construction specifications. New wet-room fixtures
+are a design proposal requiring on-site plumbing, waterproofing and clearance
+confirmation. Finishes and furniture are original procedural approximations.
+Reflective panels use environment reflections, not exact planar mirrors.
+
+`src/home-layout.js` owns the new layout, collision footprints, bake envelopes and
+light emitters. `src/home-design.js` builds the furniture and shared wood/fabric
+finishes. The existing source Blender sofa remains editable; the tobacco colour
+is a browser material override in `src/living.js`. The day/night lighting bake now
+includes the new furniture and seven warm room fixtures. Use `npm run build` after
+layout changes to regenerate both atlases, then run unit and browser tests.
+
+Current review views: [living room](docs/whole-house/home-living-day.png) ·
+[primary bedroom](docs/whole-house/home-bedroom-day.png) ·
+[guest room](docs/whole-house/home-guest-day.png) ·
+[study](docs/whole-house/home-flex-day.png) ·
+[bathroom](docs/whole-house/home-bath-day.png) ·
+[balcony](docs/whole-house/home-balcony-day.png) ·
+[warm evening lighting](docs/whole-house/home-bedroom-night.png).
+
 ![The home in the 3D overview](docs/overview.png)
 
 ![Inside the living room](docs/living-room.png)
@@ -33,7 +76,7 @@ Build with `npm run build`; serve the result with `npm run preview`. Geometry an
 - **Walk:** WASD or arrow keys to move; drag the view to look. Shift walks faster.
 - **Phone/tablet:** drag the joystick to move; drag the scene to look. Open **Rooms** for shortcuts.
 - **Kitchen view / Kitchen plan:** revisit the annotated entrance angle or a labeled overhead view. Share `#room=living&view=kitchen-entrance` or `#overview&view=kitchen-plan`.
-- **Day / Night:** switch between sunlight and warm kitchen/entrance/corridor lighting without changing the camera. The chosen lighting stays active when changing rooms or opening the overview.
+- **Day / Night:** switch between sunlight and warm lighting throughout the furnished house without changing the camera. The chosen lighting stays active when changing rooms or opening the overview.
 - **Escape:** return to overview. Reset returns to the current room's starting view.
 - Share `#room=living`, `#room=bedroom`, etc. for a particular room; add `&lighting=night` to share the night setting.
 

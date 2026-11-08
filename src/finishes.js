@@ -95,7 +95,7 @@ export async function createPhotoFinishes() {
   );
   plasterBump.repeat.setScalar(2);
   const plaster = new THREE.MeshStandardMaterial({
-    color: "#f0eeea",
+    color: "#f1ece3",
     roughness: 0.9,
     bumpMap: plasterBump,
     bumpScale: 0.00035,

@@ -18,7 +18,11 @@ test("production site renders and every room destination is clear of furniture",
     if (message.type() === "error") errors.push(message.text());
   });
   await ready(page);
-  expect(await page.evaluate(() => window.__koma.drawCalls)).toBeLessThan(150);
+  // The complete house adds one shared furnishing batch, ceiling fixtures and
+  // two transparent shower screens. Allow ten additional calls over 150.
+  const overviewCalls = await page.evaluate(() => window.__koma.drawCalls);
+  console.log('Furnished overview draw calls:', overviewCalls);
+  expect(overviewCalls).toBeLessThan(160);
   await page.screenshot({
     animations: "disabled",
     path: "test-results/desktop-overview.png",

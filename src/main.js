@@ -5,7 +5,6 @@ import { createRendering } from "./rendering.js";
 import { kitchenIsland, kitchenUnits } from "./kitchen-layout.js";
 import { livingView } from "./living-layout.js";
 import { ensuitePlumbing } from "./ensuite-layout.js";
-import { bathroomWasher } from "./bathroom-details-layout.js";
 import {
   rooms,
   walls,
@@ -153,7 +152,9 @@ function updateRoomUI(room) {
           ? 2.8
           : mode === "walk" && room?.id === "wc"
             ? 1.5
-            : 1.1;
+            : mode === "walk" && ["bedroom", "flex"].includes(room?.id)
+              ? 1.6
+              : 1.1;
   if (renderer.toneMappingExposure !== exposure) {
     renderer.toneMappingExposure = exposure;
     renderNeeded = true;
@@ -245,7 +246,7 @@ function visit(id) {
   activeRoom = room;
   setMode("walk");
   const point =
-    room.id === "living" ? [livingView.point[0], room.point[1]] : room.point;
+    room.id === "living" ? [livingView.point[0], room.point[1]] : room.id === "bedroom" ? [8.9,11.2] : room.point;
   camera.position.set(point[0], EYE_HEIGHT, point[1]);
   const look =
     room.id === "living"
@@ -253,10 +254,12 @@ function visit(id) {
       : room.id === "ensuite"
         ? ensuitePlumbing.toilet
         : room.id === "bath"
-          ? bathroomWasher.point
+          ? [1.25, 10.35]
           : room.id === "dining"
             ? [14.55, 3.75]
-            : room.look;
+            : room.id === "bedroom"
+              ? [8.9, 8.5]
+              : room.look;
   yaw = Math.atan2(-(look[0] - point[0]), -(look[1] - point[1]));
   pitch =
     room.id === "ensuite"
@@ -264,10 +267,10 @@ function visit(id) {
       : room.id === "wc"
         ? -0.72
         : room.id === "bath"
-          ? -0.72
+          ? -0.27
           : room.id === "living"
             ? -0.2
-            : -0.12;
+            : room.id === "bedroom" || room.id === "guest" ? -0.25 : -0.12;
   camera.rotation.set(pitch, yaw, 0, "YXZ");
   updateRoomUI(room);
   closeRooms();
@@ -613,6 +616,7 @@ function frame(time) {
       triangles: renderer.info.render.triangles,
       obstacles: world.obstacles,
       livingBounds: world.livingBounds,
+      homeBounds: world.homeBounds,
       kitchenBounds: world.kitchenBounds,
       kitchenFocus,
     };

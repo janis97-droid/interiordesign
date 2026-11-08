@@ -64,6 +64,12 @@ export async function buildLiving(parent, lit) {
     // A missing optional asset must not prevent visitors exploring the house.
     console.warn("Blender sofa unavailable; using the original sofa.", error);
   }
+  // November whole-house palette: retain the approved sofa models and layout,
+  // with medium-dark tobacco upholstery against light ivory walls.
+  materials.cream.color.set("#654632");
+  materials.cream.sheen = .25;
+  materials.cream.sheenColor.set("#937b64");
+  materials.piping.color.set("#9d8168");
   // Small accents share one draw call, preserving their original colours and
   // roughness per vertex. Textured upholstery and metallic surfaces stay separate.
   const accents = new Set([

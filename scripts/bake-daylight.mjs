@@ -25,13 +25,15 @@ import { ensuiteBox } from "../src/ensuite-layout.js";
 import { bathroomWasher } from "../src/bathroom-details-layout.js";
 import { kitchenBakeBoxes, kitchenEmitters } from "../src/kitchen-layout.js";
 import { livingOccluders, livingEmitters } from "../src/living-layout.js";
+import { homeOccluders, homeLights } from "../src/home-layout.js";
 import {
   ceilingSections,
   ceilingHeight,
   interiorEmitters as entranceEmitters,
   warmLightColor,
 } from "../src/entrance-layout.js";
-const interiorEmitters = [...entranceEmitters, ...kitchenEmitters, ...livingEmitters];
+const interiorEmitters = [...entranceEmitters, ...kitchenEmitters, ...livingEmitters, ...homeLights];
+const furnishingOccluders = [...livingOccluders, ...homeOccluders];
 
 const imagePath = new URL("../src/assets/daylight.png", import.meta.url);
 const nightImagePath = new URL("../src/assets/nightlight.png", import.meta.url);
@@ -45,6 +47,7 @@ for (const name of [
   "../src/bathroom-details-layout.js",
   "../src/kitchen-layout.js",
   "../src/living-layout.js",
+  "../src/home-layout.js",
   "bake-daylight.mjs",
 ])
   hash.update(await readFile(new URL(name, import.meta.url)));
@@ -63,7 +66,7 @@ try {
 }
 
 const geometries = [];
-for (const box of livingOccluders) {
+for (const box of furnishingOccluders) {
   const geometry = new THREE.BoxGeometry(box.width, box.height, box.depth).toNonIndexed();
   geometry.translate(box.x, box.y + box.height / 2, box.z);
   geometries.push(geometry);
@@ -269,7 +272,7 @@ function trace(includeNight) {
       pointInPolygon(point.x, point.z, room.polygon),
     );
     const albedo =
-      livingOccluders.find(box => Math.abs(point.x-box.x) <= box.width/2+.01 && Math.abs(point.z-box.z) <= box.depth/2+.01 && point.y >= box.y-.01 && point.y <= box.y+box.height+.01)?.albedo ??
+      furnishingOccluders.find(box => Math.abs(point.x-box.x) <= box.width/2+.01 && Math.abs(point.z-box.z) <= box.depth/2+.01 && point.y >= box.y-.01 && point.y <= box.y+box.height+.01)?.albedo ??
       kitchenAlbedo(point, hitNormal) ??
       (inBathroom && point.y < HEIGHT - 0.05
         ? 0.12

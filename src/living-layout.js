@@ -25,9 +25,9 @@ function part(item, x, y, z, width, height, depth, albedo) {
     width: Math.abs(width*c) + Math.abs(depth*s), depth: Math.abs(width*s) + Math.abs(depth*c), y: y + livingFloorY, height, albedo });
 }
 for (const item of livingSofas) {
-  part(item, 0, 0.16, 0, item.width, 0.31, item.depth, 0.65);
-  part(item, 0, 0.47, -item.depth/2 + 0.12, item.width - 0.18, 0.43, 0.24, 0.65);
-  for (const side of [-1, 1]) part(item, side*(item.width/2 - 0.10), 0.47, 0, 0.20, 0.19, item.depth, 0.65);
+  part(item, 0, 0.16, 0, item.width, 0.31, item.depth, 0.3);
+  part(item, 0, 0.47, -item.depth/2 + 0.12, item.width - 0.18, 0.43, 0.24, 0.3);
+  for (const side of [-1, 1]) part(item, side*(item.width/2 - 0.10), 0.47, 0, 0.20, 0.19, item.depth, 0.3);
 }
 for (const item of [livingTable, livingSideTable]) {
   part(item, 0, item.height-0.04, 0, item.width, 0.04, item.depth, 0.18);
