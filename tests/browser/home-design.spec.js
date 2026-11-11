@@ -8,7 +8,7 @@ test('whole house furnishings render in place with clear arrivals and warm night
   page.on('pageerror',e=>errors.push(e.message));
   page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await page.goto('./#room=bedroom');
-  await page.waitForFunction(()=>window.__koma?.homeBounds?.length===24);
+  await page.waitForFunction(count=>window.__koma?.homeBounds?.length===count,homeItems.length);
   await expect(page.locator('#loading')).toHaveCount(0);
   const state=await page.evaluate(()=>window.__koma);
   for(const item of homeItems){
@@ -32,6 +32,25 @@ test('whole house furnishings render in place with clear arrivals and warm night
     await page.getByRole('button',{name:`Visit ${r.name}`,exact:true}).click();
     await expect.poll(()=>page.evaluate(()=>window.__koma.room)).toBe(r.id);
     await page.screenshot({path:`test-results/home-${r.id}-night.png`,animations:'disabled'});
+  }
+  await page.getByRole('button',{name:'Visit Primary bedroom',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>window.__koma.room)).toBe('bedroom');
+  // Turn toward the reference-inspired gallery wall using the visitor controls.
+  const before=await page.evaluate(()=>window.__koma.yaw);
+  await page.mouse.move(1300,550);await page.mouse.down();
+  await page.mouse.move(1300-Math.PI/.0035,493,{steps:12});await page.mouse.up();
+  await expect.poll(()=>page.evaluate(start=>Math.cos(window.__koma.yaw-start),before)).toBeCloseTo(-1,2);
+  await page.screenshot({path:'test-results/home-gallery-night.png',animations:'disabled'});
+  await page.getByRole('button',{name:'Day',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>window.__koma.lighting)).toBe('day');
+  await page.screenshot({path:'test-results/home-gallery-day.png',animations:'disabled'});
+  await page.setViewportSize({width:390,height:844});
+  for(const id of ['guest','flex']){
+    const room=rooms.find(r=>r.id===id);
+    await page.getByRole('button',{name:/^Rooms/}).click();
+    await page.getByRole('button',{name:`Visit ${room.name}`,exact:true}).click();
+    await expect(page.locator('#view-title')).toHaveText(room.name);
+    await page.screenshot({path:`test-results/home-${id}-mobile.png`,animations:'disabled'});
   }
   console.log('Whole-house render:',state.drawCalls,'calls,',state.triangles,'triangles');
   expect(errors).toEqual([]);

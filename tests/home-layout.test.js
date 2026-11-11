@@ -34,5 +34,17 @@ test('furnished house keeps all rooms and walk-in showers reachable',()=>{
   }
   for(const r of rooms)assert.ok(seen.has(key(...r.point.map(v=>Math.round(v/step)))),r.name);
   for(const s of homeShowers)assert.ok(seen.has(key(Math.round(s.x/step),Math.round(s.z/step))),s.id);
+  for(const [name,x,z] of [['protected window',5.6,12.6],['protected entrance',6.0,10.1],['bedroom arrival',8.8,9.6],['wardrobe access',7.6,11.4]])
+    assert.ok(seen.has(key(Math.round(x/step),Math.round(z/step))),name);
   for(const o of homeItems)assert.equal(canOccupy(o.x,o.z,obstacles),false,o.id);
+});
+test('owner room corrections retain the bed footprint and clear the window',()=>{
+  const bed=homeItems.find(o=>o.id==='primary-bed');
+  assert.deepEqual([bed.width,bed.depth],[1.8,2.2]);
+  assert.equal(bed.rotation,Math.PI);
+  assert.ok(bed.z>11&&bed.height+.014<.78,'headboard stays below the existing sill');
+  assert.equal(homeItems.filter(o=>o.room==='guest'&&o.kind.includes('bed')).length,1);
+  assert.ok(homeItems.filter(o=>o.room==='flex').every(o=>o.kind.startsWith('storage-')));
+  // Storage stays outside the protected-room window approach.
+  for(let x=5.0;x<=6.0;x+=.2)assert.ok(canOccupy(x,12.6,obstacles),'window approach');
 });

@@ -369,8 +369,8 @@ export const rooms = [
   },
   {
     id: "guest",
-    name: "Guest room",
-    category: "A quiet retreat",
+    name: "Children’s room",
+    category: "Sleep, play & grow",
     size: "3.80 × 3.30 m",
     point: p(412, 927),
     look: p(284, 792),
@@ -387,9 +387,9 @@ export const rooms = [
   },
   {
     id: "flex",
-    name: "Flex room",
-    category: "Work, read, recharge",
-    size: "3.30 × 3.00 m · safe room",
+    name: "Protected room",
+    category: "Organised storage",
+    size: "3.30 × 3.00 m · storage",
     point: p(525, 1160),
     look: p(414, 1210),
     bounds: [318, 1094, 590, 1337],

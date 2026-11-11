@@ -13,15 +13,24 @@ room-by-room furnishing restriction and cream-sofa colour choice below.
 
 - **Living / kitchen:** tobacco linen on the approved sofa geometry, retained
   walnut kitchen, traditional rug and tables, a new warm pendant and curtain panels.
-- **Primary bedroom:** 180 cm bed, padded channel headboard, two bedside tables,
-  reading lamps, 216 cm wardrobe, dresser, upholstered bench, rug and framed art.
-- **Guest bedroom:** 150 cm bed, bedside tables/lamps, 180 cm wardrobe and textiles.
-- **Study / flex room:** walnut desk, chair, bookcase and 208 cm daybed with cushions.
-  Furniture is freestanding; the safe-room shell and window remain intact.
+- **Primary bedroom (owner correction, 11 November):** the same 180 × 220 cm bed
+  now sits against the opposite, window wall and faces the entrance. A 72 cm
+  headboard stays below the modeled 78 cm sill. Bedside tables move with it;
+  the 216 cm wardrobe remains. The former dresser/bench give way to clear
+  circulation and a shallow walnut gallery shelf on the opposite wall.
+- **Children’s room:** one 105 × 210 cm single bed, one bedside table, retained
+  wardrobe, low toy cubbies, a small drawing table/stool and a soft play rug.
+  Sage, muted blue and ochre details follow the owner's one-child brief.
+- **Protected room / storage:** perimeter shelving with bins, a closed cabinet
+  and a low storage unit replace the desk, office chair and daybed. The doorway,
+  window approach and central floor remain clear in the collision model.
+  Shelving dimensions are proposed; the original shell and openings remain intact.
 - **Bathrooms:** walnut vanities and open recessed basins, brass taps, framed
   reflective panels, towel rails, walk-in glass screens and rainfall shower fittings.
   The large bathroom gains a WC; the approved laundry partition/washer remain.
-- **Hall / balcony:** slim console and artwork; two outdoor chairs, round table,
+- **Hall / balcony:** reference-inspired gallery frames, slim walnut floating
+  shelves, warm lamps, plants and patterned runners over the original tile;
+  two outdoor chairs, round table,
   ceramic planters and planting, with the slider approach kept clear.
 
 All new furniture dimensions are proposed selections fitted to this model, not
@@ -34,16 +43,20 @@ Reflective panels use environment reflections, not exact planar mirrors.
 light emitters. `src/home-design.js` builds the furniture and shared wood/fabric
 finishes. The existing source Blender sofa remains editable; the tobacco colour
 is a browser material override in `src/living.js`. The day/night lighting bake now
-includes the new furniture and seven warm room fixtures. Use `npm run build` after
+includes the new furniture, seven warm room fixtures and two shelf lamps. Use `npm run build` after
 layout changes to regenerate both atlases, then run unit and browser tests.
 
 Current review views: [living room](docs/whole-house/home-living-day.png) ·
 [primary bedroom](docs/whole-house/home-bedroom-day.png) ·
-[guest room](docs/whole-house/home-guest-day.png) ·
-[study](docs/whole-house/home-flex-day.png) ·
+[children’s room](docs/whole-house/home-guest-day.png) ·
+[protected-room storage](docs/whole-house/home-flex-day.png) ·
+[gallery wall](docs/whole-house/home-gallery-night.png) ·
 [bathroom](docs/whole-house/home-bath-day.png) ·
 [balcony](docs/whole-house/home-balcony-day.png) ·
 [warm evening lighting](docs/whole-house/home-bedroom-night.png).
+
+Room link IDs `guest` and `flex` stay unchanged so earlier shared links still
+work; their visible names now read “Children’s room” and “Protected room”.
 
 ![The home in the 3D overview](docs/overview.png)
 
